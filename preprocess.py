@@ -20,6 +20,7 @@ import librosa
 import numpy as np
 from collections import namedtuple
 from collections import defaultdict
+from hps.hps import hp
 
 
 def preprocess(source_path, 
@@ -196,20 +197,6 @@ class Sampler(object):
 			self.speaker2id = json.load(f_json)
 
 
-class hyperparams(object):
-    def __init__(self):
-        self.sr = 16000 # Sampling rate. Paper => 24000
-        self.n_fft = 1024 # fft points (samples)
-        self.frame_shift = 0.0125 # seconds
-        self.frame_length = 0.05 # seconds
-        self.hop_length = int(self.sr*self.frame_shift) # samples  This is dependent on the frame_shift.
-        self.win_length = int(self.sr*self.frame_length) # samples This is dependent on the frame_length.
-        self.n_mels = 80 # Number of Mel banks to generate
-        self.power = 1.2 # Exponent for amplifying the predicted magnitude
-        self.n_iter = 200 # Number of inversion iterations 
-        self.use_log_magnitude = True # if False, use magnitude
-
-
 """
 	Extracts melspectrogram and log magnitude from given `sound_file`.
 	Args:
@@ -220,7 +207,6 @@ class hyperparams(object):
 """
 def get_spectrograms(sound_file): 
 
-	hp = hyperparams()
 	y, sr = librosa.load(sound_file, sr=hp.sr) # Loading sound file
 	y, _ = librosa.effects.trim(y) # Trimming
 	D = librosa.stft(y=y, # stft. D: (1+n_fft//2, T)

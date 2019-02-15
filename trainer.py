@@ -206,7 +206,7 @@ class Trainer(object):
 					f'{flag}/pre_loss_rec': loss_rec.item(),
 				}
 				slot_value = (iteration + 1, hps.enc_pretrain_iters) + tuple([value for value in info.values()])
-				log = 'pre_G:[%06d/%06d], loss_rec=%.3f'
+				log = 'pre_R:[%06d/%06d], loss_rec=%.3f'
 				print(log % slot_value, end='\r')
 				
 				if iteration % 100 == 0:
@@ -240,7 +240,7 @@ class Trainer(object):
 					f'{flag}/pre_acc': acc,
 				}
 				slot_value = (iteration + 1, hps.dis_pretrain_iters) + tuple([value for value in info.values()])
-				log = 'pre_D:[%06d/%06d], loss_clf=%.2f, acc=%.2f'
+				log = 'pre_C:[%06d/%06d], loss_clf=%.2f, acc=%.2f'
 				
 				print(log % slot_value, end='\r')
 				if iteration % 100 == 0:

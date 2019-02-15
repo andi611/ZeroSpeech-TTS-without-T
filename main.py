@@ -12,7 +12,7 @@
 ###############
 import os
 import argparse
-from utils import Hps
+from hps.hps import Hps
 from convert import test
 from trainer import Trainer
 from preprocess import preprocess
@@ -21,31 +21,33 @@ from dataloader import Dataset, DataLoader
 
 if __name__ == '__main__':
 	
-	parser = argparse.ArgumentParser()
-	parser.add_argument('--preprocess', default=False, action='store_true')
-	parser.add_argument('--train', default=False, action='store_true')
-	parser.add_argument('--test', default=False, action='store_true')
-	parser.add_argument('--load_model', default=False, action='store_true')
+	parser = argparse.ArgumentParser(description='zerospeech_project')
+	parser.add_argument('--preprocess', default=False, action='store_true', help='preprocess the zerospeech dataset')
+	parser.add_argument('--train', default=False, action='store_true', help='start stage 1 and stage 2 training')
+	parser.add_argument('--test', default=False, action='store_true', help='test the trained model')
+	parser.add_argument('--load_model', default=False, action='store_true', help='whether to load training session from previous checkpoints')
 
-	parser.add_argument('--flag', type=str, default='train')
-	parser.add_argument('--targeted_G', type=bool, default=bool(1))
+	static_setting = parser.add_argument_group('static_setting')
+	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
+	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
 	
-	# mode_args = parser.add_argument_group('mode')
-	parser.add_argument('--source_path', type=str, default='./data/english/train/unit/')
-	parser.add_argument('--target_path', type=str, default='./data/english/train/voice/')
-	parser.add_argument('--test_path', type=str, default='./data/english/test/')
-	parser.add_argument('--dataset_path', type=str, default='./data/dataset.hdf5')
-	parser.add_argument('--index_path', type=str, default='./data/index.json')
-	parser.add_argument('--index_source_path', type=str, default='./data/index_source.json')
-	parser.add_argument('--index_target_path', type=str, default='./data/index_target.json')
-	parser.add_argument('--speaker2id_path', type=str, default='./data/speaker2id.json')
+	data_path = parser.add_argument_group('data_path')
+	data_path.add_argument('--source_path', type=str, default='./data/english/train/unit/', help='the zerospeech train unit dataset')
+	data_path.add_argument('--target_path', type=str, default='./data/english/train/voice/', help='the zerospeech train voice dataset')
+	data_path.add_argument('--test_path', type=str, default='./data/english/test/', help='the zerospeech test dataset')
+	data_path.add_argument('--dataset_path', type=str, default='./data/dataset.hdf5', help='the processed train dataset (unit + voice)')
+	data_path.add_argument('--index_path', type=str, default='./data/index.json', help='sample training segments from the train dataset, for stage 1 training')
+	data_path.add_argument('--index_source_path', type=str, default='./data/index_source.json', help='sample training source segments from the train dataset, for stage 2 training')
+	data_path.add_argument('--index_target_path', type=str, default='./data/index_target.json', help='sample training target segments from the train dataset, for stage 2 training')
+	data_path.add_argument('--speaker2id_path', type=str, default='./data/speaker2id.json', help='records speaker and speaker id')
 
-	parser.add_argument('--hps_path', type=str, default='./hps/zerospeech.json')
-	parser.add_argument('--ckpt_dir', type=str, default='./ckpt')
-	parser.add_argument('--result_dir', type=str, default='./result')
-	parser.add_argument('--model_name', type=str, default='model.pth')
-	parser.add_argument('--load_train_model_name', type=str, default='model.pth-149999')
-	parser.add_argument('--load_test_model_name', type=str, default='model.pth-149999')
+	model_path = parser.add_argument_group('model_path')
+	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech.json', help='hyperparameter path')
+	model_path.add_argument('--ckpt_dir', type=str, default='./ckpt', help='checkpoint directory for training storage')
+	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
+	model_path.add_argument('--model_name', type=str, default='model.pth', help='base model name for training')
+	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-149999', help='the model to restore for training, the command --load_model will load this model')
+	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-149999', help='the model to restore for testing, the command --test will load this model')
 	args = parser.parse_args()
 
 	HPS = Hps(args.hps_path)
