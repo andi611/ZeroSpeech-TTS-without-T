@@ -1,0 +1,189 @@
+# -*- coding: utf-8 -*- #
+"""*********************************************************************************************"""
+#   FileName     [ convert.py ]
+#   Synopsis     [ testing functions for voice conversion ]
+#   Author       [ Ting-Wei Liu (Andi611) ]
+#   Copyright    [ Copyleft(c), NTUEE, NTU, Taiwan ]
+"""*********************************************************************************************"""
+
+
+###############
+# IMPORTATION #
+###############
+import os 
+import h5py
+import json
+import copy
+import torch
+import librosa
+import numpy as np
+from tqdm import tqdm
+import soundfile as sf
+from scipy import signal
+from scipy.io.wavfile import write
+from torch.autograd import Variable
+from trainer import Trainer
+from utils import Hps
+
+
+class hyperparams(object):
+	def __init__(self):
+		self.max_duration = 10.0
+
+		# signal processing
+		self.sr = 16000 # Sample rate.
+		self.n_fft = 1024 # fft points (samples)
+		self.frame_shift = 0.0125 # seconds
+		self.frame_length = 0.05 # seconds
+		self.hop_length = int(self.sr*self.frame_shift) # samples.
+		self.win_length = int(self.sr*self.frame_length) # samples.
+		self.n_mels = 80 # Number of Mel banks to generate
+		self.power = 1.2 # Exponent for amplifying the predicted magnitude
+		self.n_iter = 300 # Number of inversion iterations
+		self.preemphasis = .97 # or None
+		self.max_db = 100
+		self.ref_db = 20
+hp = hyperparams()
+
+
+def griffin_lim(spectrogram): # Applies Griffin-Lim's raw.
+	
+	def _invert_spectrogram(spectrogram): # spectrogram: [f, t]
+		return librosa.istft(spectrogram, hp.hop_length, win_length=hp.win_length, window="hann")
+
+	X_best = copy.deepcopy(spectrogram)
+	for i in range(hp.n_iter):
+		X_t = _invert_spectrogram(X_best)
+		est = librosa.stft(X_t, hp.n_fft, hp.hop_length, win_length=hp.win_length)
+		phase = est / np.maximum(1e-8, np.abs(est))
+		X_best = spectrogram * phase
+	X_t = _invert_spectrogram(X_best)
+	y = np.real(X_t)
+	return y
+
+
+def spectrogram2wav(mag): # Generate wave file from spectrogram
+	mag = mag.T # transpose
+	mag = (np.clip(mag, 0, 1) * hp.max_db) - hp.max_db + hp.ref_db # de-noramlize
+	mag = np.power(10.0, mag * 0.05) # to amplitude
+	wav = griffin_lim(mag) # wav reconstruction
+	wav = signal.lfilter([1], [1, -hp.preemphasis], wav) # de-preemphasis
+	wav, _ = librosa.effects.trim(wav) # trim
+	return wav.astype(np.float32)
+
+
+def sp2wav(sp): 
+	exp_sp = sp
+	wav_data = spectrogram2wav(exp_sp)
+	return wav_data
+
+
+def get_world_param(f_h5, src_speaker, utt_id, tar_speaker, tar_speaker_id, trainer, dset='test', gen=True):
+	mc = f_h5[f'{dset}/{src_speaker}/{utt_id}/norm_mc'][()]
+	converted_mc = convert_x(mc, tar_speaker_id, trainer, gen=gen)
+	#converted_mc = mc
+	mc_mean = f_h5[f'train/{tar_speaker}'].attrs['mc_mean']
+	mc_std = f_h5[f'train/{tar_speaker}'].attrs['mc_std']
+	converted_mc = converted_mc * mc_std + mc_mean
+	log_f0 = f_h5[f'{dset}/{src_speaker}/{utt_id}/log_f0'][()]
+	src_mean = f_h5[f'train/{src_speaker}'].attrs['f0_mean']
+	src_std = f_h5[f'train/{src_speaker}'].attrs['f0_std']
+	tar_mean = f_h5[f'train/{tar_speaker}'].attrs['f0_mean']
+	tar_std = f_h5[f'train/{tar_speaker}'].attrs['f0_std']
+	index = np.where(log_f0 > 1e-10)[0]
+	log_f0[index] = (log_f0[index] - src_mean) * tar_std / src_std + tar_mean
+	log_f0[index] = np.exp(log_f0[index])
+	f0 = log_f0
+	ap = f_h5[f'{dset}/{src_speaker}/{utt_id}/ap'][()]
+	converted_mc = converted_mc[:ap.shape[0]]
+	sp = pysptk.conversion.mc2sp(converted_mc, alpha=0.41, fftlen=1024)
+	return f0, sp, ap
+
+
+def synthesis(f0, sp, ap, sr=16000):
+	y = pw.synthesize(f0.astype(np.float64), sp.astype(np.float64), ap.astype(np.float64), sr, pw.default_frame_period)
+	return y
+
+
+def convert_x(x, c, trainer, gen=True):
+	c_var = Variable(torch.from_numpy(np.array([c]))).cuda()
+	tensor = torch.from_numpy(np.expand_dims(x, axis=0))
+	tensor = tensor.type(torch.FloatTensor)
+	converted = trainer.test_step(tensor, c_var, gen=gen)
+	converted = converted.squeeze(axis=0).transpose((1, 0))
+	return converted
+
+
+def get_model(hps_path, model_path, targeted_G):
+	HPS = Hps(hps_path)
+	hps = HPS.get_tuple()
+	trainer = Trainer(hps, None, targeted_G)
+	trainer.load_model(model_path)
+	return trainer
+
+
+def convert_all_sp(trainer,
+				   h5_path, 
+				   src_speaker, 
+				   tar_speaker, 
+				   gen=True, 
+				   dset='test', 
+				   speaker2id={},
+				   result_dir=''):
+	with h5py.File(h5_path, 'r') as f_h5:
+		for utt_id in f_h5[f'{dset}/{src_speaker}']:
+			sp = f_h5[f'{dset}/{src_speaker}/{utt_id}/lin'][()]
+			converted_x = convert_x(sp, speaker2id[tar_speaker], trainer, gen=gen)
+			wav_data = sp2wav(converted_x)
+			wav_path = os.path.join(result_dir, f'{src_speaker}_{tar_speaker}_{utt_id}.wav')
+			sf.write(wav_path, wav_data, 16000, 'PCM_24')
+
+
+def convert_all_mc(trainer,
+				   h5_path, 
+				   src_speaker, 
+				   tar_speaker, 
+				   gen=False, 
+				   dset='test', 
+				   speaker2id={},
+				   result_dir=''):
+	with h5py.File(h5_path, 'r') as f_h5:
+		for utt_id in f_h5[f'{dset}/{src_speaker}']:
+			f0, sp, ap = get_world_param(f_h5, src_speaker, utt_id, tar_speaker, tar_speaker_id=speaker2id[tar_speaker], trainer=trainer, dset='test', gen=gen)
+			wav_data = synthesis(f0, sp, ap)
+			wav_path = os.path.join(result_dir, f'{src_speaker}_{tar_speaker}_{utt_id}.wav')
+			sf.write(wav_path, wav_data, 16000, 'PCM_24')
+
+
+def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_G):
+
+	f_h5 = h5py.File(data_path, 'r')
+	speakers = sorted(list(f_h5['train'].keys())) # training set contains all speakers (source & target)
+	
+	source_speakers, target_speakers = [], []
+	for speaker in speakers:
+		if speaker[0] == 'S': source_speakers.append(speaker)
+		elif speaker[0] == 'V': target_speakers.append(speaker)
+		else: raise NotImplementedError
+
+	with open(speaker2id_path, 'r') as f_json:
+		speaker2id = json.load(f_json)
+
+	trainer = get_model(hps_path=hps_path, model_path=model_path, targeted_G=targeted_G)
+
+	print('Converting all testing utterances from source speakers to target speakers, this may take a while...')
+	for speaker_S in tqdm(source_speakers):
+		for speaker_T in target_speakers:
+			assert speaker_S != speaker_T
+			dir_path = os.path.join(result_dir, f'p{speaker_S}_p{speaker_T}')
+			os.makedirs(dir_path, exist_ok=True)
+
+			convert_all_sp(trainer,
+						   data_path, 
+						   speaker_S, 
+						   speaker_T,
+						   gen=True,
+						   dset='test',
+						   speaker2id=speaker2id,
+						   result_dir=dir_path)
+
