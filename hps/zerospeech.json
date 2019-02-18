@@ -20,7 +20,7 @@
 	"n_patch_steps": 5,
 	"batch_size": 16,
 	"lat_sched_iters": 50000,
-	"enc_pretrain_iters": 8000,
+	"enc_pretrain_iters": 108000,
 	"dis_pretrain_iters": 20000,
 	"patch_iters": 50000,
 	"iters": 100000,

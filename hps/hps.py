@@ -11,6 +11,7 @@
 # IMPORTATION #
 ###############
 import json
+from collections import namedtuple
 
 
 class processing_hyperparams(object):

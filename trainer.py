@@ -69,7 +69,7 @@ class Trainer(object):
 		self.patch_opt = optim.Adam(self.PatchDiscriminator.parameters(), lr=self.hps.lr, betas=betas)
 
 
-	def save_model(self, model_path, iteration, enc_only=True):
+	def save_model(self, model_path, name, iteration, enc_only=True):
 		if not enc_only:
 			all_model = {
 				'encoder': self.Encoder.state_dict(),
@@ -84,7 +84,7 @@ class Trainer(object):
 				'decoder': self.Decoder.state_dict(),
 				'generator': self.Generator.state_dict(),
 			}
-		new_model_path = '{}-{}'.format(model_path, iteration)
+		new_model_path = '{}-{}-{}'.format(model_path, name, iteration)
 		torch.save(all_model, new_model_path)
 		self.model_kept.append(new_model_path)
 
@@ -94,7 +94,7 @@ class Trainer(object):
 
 
 	def load_model(self, model_path, enc_only=True, verbose=True):
-		if verbose: print('load model from {}'.format(model_path))
+		if verbose: print('[Trainer] - load model from {}'.format(model_path))
 		all_model = torch.load(model_path)
 		self.Encoder.load_state_dict(all_model['encoder'])
 		self.Decoder.load_state_dict(all_model['decoder'])
@@ -117,12 +117,12 @@ class Trainer(object):
 		self.PatchDiscriminator.eval()
 
 
-	def test_step(self, x, c, gen=False):
+	def test_step(self, x, c, enc_only=False):
 		self.set_eval()
 		x = to_var(x).permute(0, 2, 1)
 		enc = self.Encoder(x)
 		x_tilde = self.Decoder(enc, c)
-		if gen:
+		if not enc_only:
 			x_tilde += self.Generator(enc, c) if not self.targeted_G else self.Generator(enc, c - self.hps.n_speakers)
 		return x_tilde.data.cpu().numpy()
 
@@ -187,7 +187,7 @@ class Trainer(object):
 		# load hyperparams
 		hps = self.hps
 
-		if mode == 'pretrain_R':
+		if mode == 'pretrain_AE':
 			for iteration in range(hps.enc_pretrain_iters):
 				data = next(self.data_loader)
 				c, x = self.permute_data(data)
@@ -206,12 +206,14 @@ class Trainer(object):
 					f'{flag}/pre_loss_rec': loss_rec.item(),
 				}
 				slot_value = (iteration + 1, hps.enc_pretrain_iters) + tuple([value for value in info.values()])
-				log = 'pre_R:[%06d/%06d], loss_rec=%.3f'
+				log = 'pre_AE:[%06d/%06d], loss_rec=%.3f'
 				print(log % slot_value, end='\r')
 				
 				if iteration % 100 == 0:
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
+				if iteration % 1000 == 0 or iteration + 1 == hps.iters:
+					self.save_model(model_path, 'ae', iteration)
 			print()
 
 		elif mode == 'pretrain_C':
@@ -246,6 +248,8 @@ class Trainer(object):
 				if iteration % 100 == 0:
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
+				if iteration % 1000 == 0 or iteration + 1 == hps.iters:
+					self.save_model(model_path, 'c', iteration)
 			print()
 
 		elif mode == 'train':
@@ -326,7 +330,7 @@ class Trainer(object):
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
 				if iteration % 1000 == 0 or iteration + 1 == hps.iters:
-					self.save_model(model_path, iteration)
+					self.save_model(model_path, 's1', iteration)
 			print()
 
 		elif mode == 'patchGAN':
@@ -417,7 +421,7 @@ class Trainer(object):
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
 				if iteration % 1000 == 0 or iteration + 1 == hps.patch_iters:
-					self.save_model(model_path, iteration + hps.iters)
+					self.save_model(model_path, 's2', iteration + hps.iters)
 			print()
 		
 		else: 

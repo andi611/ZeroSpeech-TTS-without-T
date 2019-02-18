@@ -12,7 +12,6 @@
 ###############
 import torch
 import numpy as np
-from collections import namedtuple
 from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 

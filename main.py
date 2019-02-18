@@ -29,6 +29,7 @@ if __name__ == '__main__':
 
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
+	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
 	
 	data_path = parser.add_argument_group('data_path')
@@ -46,7 +47,7 @@ if __name__ == '__main__':
 	model_path.add_argument('--ckpt_dir', type=str, default='./ckpt', help='checkpoint directory for training storage')
 	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
 	model_path.add_argument('--model_name', type=str, default='model.pth', help='base model name for training')
-	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-149999', help='the model to restore for training, the command --load_model will load this model')
+	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-ae', help='the model to restore for training, the command --load_model will load this model')
 	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-149999', help='the model to restore for testing, the command --test will load this model')
 	args = parser.parse_args()
 
@@ -85,12 +86,12 @@ if __name__ == '__main__':
 
 		#---initialize trainer---#
 		trainer = Trainer(hps, data_loader, args.targeted_G)
-		if args.load_model: trainer.load_model(args.load_train_model_name)
+		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name))
 
 		if args.train:
-			trainer.train(model_path, args.flag, mode='pretrain_R') # Stage 1 pre-train: encoder-decoder reconstruction
-			trainer.train(model_path, args.flag, mode='pretrain_C') # Stage 1 pre-train: classifier-1
-			trainer.train(model_path, args.flag, mode='train') 		# Stage 1 training
+			trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
+			# trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
+			# trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
 			
 			# trainer.add_duo_loader(source_loader, target_loader)
 			# trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
@@ -98,7 +99,7 @@ if __name__ == '__main__':
 	if args.test:
 
 		os.makedirs(args.result_dir, exist_ok=True)
-		model_path = os.path.join(args.ckpt_dir, args.load_model_name)
-		test(args.dataset_path, model_path, args.hps_path, args.speaker2id_path, args.result_dir, args.targeted_G)
+		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
+		test(args.dataset_path, model_path, args.hps_path, args.speaker2id_path, args.result_dir, args.targeted_G, args.enc_only, args.flag)
 
 

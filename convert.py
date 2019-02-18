@@ -23,7 +23,7 @@ from scipy import signal
 from scipy.io.wavfile import write
 from torch.autograd import Variable
 from trainer import Trainer
-from hps.hps import hp
+from hps.hps import hp, Hps
 
 
 def griffin_lim(spectrogram): # Applies Griffin-Lim's raw.
@@ -85,20 +85,20 @@ def synthesis(f0, sp, ap, sr=16000):
 	return y
 
 
-def convert_x(x, c, trainer, gen=True):
+def convert_x(x, c, trainer, enc_only):
 	c_var = Variable(torch.from_numpy(np.array([c]))).cuda()
 	tensor = torch.from_numpy(np.expand_dims(x, axis=0))
 	tensor = tensor.type(torch.FloatTensor)
-	converted = trainer.test_step(tensor, c_var, gen=gen)
+	converted = trainer.test_step(tensor, c_var, enc_only=enc_only)
 	converted = converted.squeeze(axis=0).transpose((1, 0))
 	return converted
 
 
-def get_model(hps_path, model_path, targeted_G):
+def get_model(hps_path, model_path, targeted_G, enc_only):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
 	trainer = Trainer(hps, None, targeted_G)
-	trainer.load_model(model_path)
+	trainer.load_model(model_path, enc_only=enc_only)
 	return trainer
 
 
@@ -106,17 +106,20 @@ def convert_all_sp(trainer,
 				   h5_path, 
 				   src_speaker, 
 				   tar_speaker, 
-				   gen=True, 
+				   enc_only=True, 
 				   dset='test', 
 				   speaker2id={},
 				   result_dir=''):
 	with h5py.File(h5_path, 'r') as f_h5:
 		for utt_id in f_h5[f'{dset}/{src_speaker}']:
-			sp = f_h5[f'{dset}/{src_speaker}/{utt_id}/lin'][()]
-			converted_x = convert_x(sp, speaker2id[tar_speaker], trainer, gen=gen)
-			wav_data = sp2wav(converted_x)
-			wav_path = os.path.join(result_dir, f'{src_speaker}_{tar_speaker}_{utt_id}.wav')
-			sf.write(wav_path, wav_data, 16000, 'PCM_24')
+			try:
+				sp = f_h5[f'{dset}/{src_speaker}/{utt_id}/lin'][()]
+				converted_x = convert_x(sp, speaker2id[tar_speaker], trainer, enc_only=enc_only)
+				wav_data = sp2wav(converted_x)
+				wav_path = os.path.join(result_dir, f'{src_speaker}_{tar_speaker}_{utt_id}.wav')
+				sf.write(wav_path, wav_data, 16000, 'PCM_24')
+			except RuntimeError:
+				print('[Tester] - Unable to process \"{}\" of speaker {}: '.format(utt_id, f_h5[f'{dset}/{src_speaker}']))
 
 
 def convert_all_mc(trainer,
@@ -135,23 +138,24 @@ def convert_all_mc(trainer,
 			sf.write(wav_path, wav_data, 16000, 'PCM_24')
 
 
-def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_G):
+def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_G, enc_only, flag):
 
 	f_h5 = h5py.File(data_path, 'r')
-	speakers = sorted(list(f_h5['train'].keys())) # training set contains all speakers (source & target)
 	
-	source_speakers, target_speakers = [], []
-	for speaker in speakers:
-		if speaker[0] == 'S': source_speakers.append(speaker)
-		elif speaker[0] == 'V': target_speakers.append(speaker)
-		else: raise NotImplementedError
+	print('[Tester] - Testing on the {}ing set...'.format(flag))
+	if flag == 'test':
+		source_speakers = sorted(list(f_h5['test'].keys()))
+	elif flag == 'train':
+		source_speakers = [s for s in sorted(list(f_h5['train'].keys())) if s[0] == 'S']
+	target_speakers = [s for s in sorted(list(f_h5['train'].keys())) if s[0] == 'V']
+	print('[Tester] - Source speakers: %i, Target speakers: %i' % (len(source_speakers), len(target_speakers)))
 
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
 
-	trainer = get_model(hps_path=hps_path, model_path=model_path, targeted_G=targeted_G)
+	trainer = get_model(hps_path=hps_path, model_path=model_path, targeted_G=targeted_G, enc_only=True)
 
-	print('Converting all testing utterances from source speakers to target speakers, this may take a while...')
+	print('[Tester] - Converting all testing utterances from source speakers to target speakers, this may take a while...')
 	for speaker_S in tqdm(source_speakers):
 		for speaker_T in target_speakers:
 			assert speaker_S != speaker_T
@@ -162,8 +166,8 @@ def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_
 						   data_path, 
 						   speaker_S, 
 						   speaker_T,
-						   gen=True,
-						   dset='test',
+						   enc_only=enc_only,
+						   dset=flag,
 						   speaker2id=speaker2id,
 						   result_dir=dir_path)
 
