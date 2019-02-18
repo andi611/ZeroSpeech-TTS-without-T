@@ -198,25 +198,43 @@ class Sampler(object):
 
 
 """
-	Extracts melspectrogram and log magnitude from given `sound_file`.
+	Returns normalized log(melspectrogram) and log(magnitude) from `sound_file`.
 	Args:
-		sound_file: A string. Full path of a sound file.
-	Returns:
-		Transposed S: A 2d array. A transposed melspectrogram with shape of (T, n_mels)
-		Transposed magnitude: A 2d array.Has shape of (T, 1+hp.n_fft//2)
-"""
-def get_spectrograms(sound_file): 
+	  sound_file: A string. The full path of a sound file.
 
+	Returns:
+	  mel: A 2d array of shape (T, n_mels) <- Transposed
+	  mag: A 2d array of shape (T, 1+n_fft/2) <- Transposed
+"""
+def get_spectrograms(sound_file):
+
+	
 	y, sr = librosa.load(sound_file, sr=hp.sr) # Loading sound file
 	y, _ = librosa.effects.trim(y) # Trimming
-	D = librosa.stft(y=y, # stft. D: (1+n_fft//2, T)
-					 n_fft=hp.n_fft, 
-					 hop_length=hp.hop_length, 
-					 win_length=hp.win_length) 
+	y = np.append(y[0], y[1:] - hp.preemphasis * y[:-1]) # Preemphasis
+
+	linear = librosa.stft(y=y, # stft
+						  n_fft=hp.n_fft,
+						  hop_length=hp.hop_length,
+						  win_length=hp.win_length)
+
 	
-	magnitude = np.abs(D) # magnitude spectrogram: (1+n_fft/2, T)
-	power = magnitude**2 # power spectrogram: (1+n_fft/2, T) 
-	S = librosa.feature.melspectrogram(S=power, n_mels=hp.n_mels) # mel spectrogram: (n_mels, T)
+	mag = np.abs(linear)  # magnitude spectrogram: (1+n_fft//2, T)
 
-	return np.transpose(S.astype(np.float32)), np.transpose(magnitude.astype(np.float32)) # (T, n_mels), (T, 1+n_fft/2)
+	# mel spectrogram
+	mel_basis = librosa.filters.mel(hp.sr, hp.n_fft, hp.n_mels)  # (n_mels, 1+n_fft//2)
+	mel = np.dot(mel_basis, mag)  # (n_mels, t)
 
+	# to decibel
+	mel = 20 * np.log10(np.maximum(1e-5, mel))
+	mag = 20 * np.log10(np.maximum(1e-5, mag))
+
+	# normalize
+	mel = np.clip((mel - hp.ref_db + hp.max_db) / hp.max_db, 1e-8, 1)
+	mag = np.clip((mag - hp.ref_db + hp.max_db) / hp.max_db, 1e-8, 1)
+
+	# Transpose
+	mel = mel.T.astype(np.float32)  # (T, n_mels)
+	mag = mag.T.astype(np.float32)  # (T, 1+n_fft//2)
+
+	return mel, mag

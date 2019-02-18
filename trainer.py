@@ -212,8 +212,8 @@ class Trainer(object):
 				if iteration % 100 == 0:
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
-				if iteration % 1000 == 0 or iteration + 1 == hps.iters:
-					self.save_model(model_path, 'ae', iteration)
+				if (iteration + 1) % 1000 == 0:
+					self.save_model(model_path, 'ae', iteration + 1)
 			print()
 
 		elif mode == 'pretrain_C':
@@ -248,8 +248,8 @@ class Trainer(object):
 				if iteration % 100 == 0:
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
-				if iteration % 1000 == 0 or iteration + 1 == hps.iters:
-					self.save_model(model_path, 'c', iteration)
+				if (iteration + 1) % 1000 == 0:
+					self.save_model(model_path, 'c', iteration + 1)
 			print()
 
 		elif mode == 'train':
@@ -329,8 +329,8 @@ class Trainer(object):
 				if iteration % 100 == 0:
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
-				if iteration % 1000 == 0 or iteration + 1 == hps.iters:
-					self.save_model(model_path, 's1', iteration)
+				if (iteration + 1) % 1000 == 0:
+					self.save_model(model_path, 's1', iteration + 1)
 			print()
 
 		elif mode == 'patchGAN':
@@ -420,8 +420,8 @@ class Trainer(object):
 				if iteration % 100 == 0:
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
-				if iteration % 1000 == 0 or iteration + 1 == hps.patch_iters:
-					self.save_model(model_path, 's2', iteration + hps.iters)
+				if (iteration + 1) % 1000 == 0:
+					self.save_model(model_path, 's2', iteration + 1 + hps.iters)
 			print()
 		
 		else: 

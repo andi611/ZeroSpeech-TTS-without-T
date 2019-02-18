@@ -22,6 +22,7 @@ import soundfile as sf
 from scipy import signal
 from scipy.io.wavfile import write
 from torch.autograd import Variable
+from preprocess import get_spectrograms
 from trainer import Trainer
 from hps.hps import hp, Hps
 
@@ -170,4 +171,28 @@ def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_
 						   dset=flag,
 						   speaker2id=speaker2id,
 						   result_dir=dir_path)
+
+
+def test_single(model_path, hps_path, speaker2id_path, result_dir):
+	HPS = Hps(hps_path)
+	hps = HPS.get_tuple()
+
+	trainer = Trainer(hps, None, targeted_G=True)
+	trainer.load_model(model_path, enc_only=True)
+
+	with open(speaker2id_path, 'r') as f_json:
+		speaker2id = json.load(f_json)
+
+	filename = './data/english/train/unit/S015_0361841101.wav' 
+	
+	_, spec = get_spectrograms(filename)
+	spec_expand = np.expand_dims(spec, axis=0)
+	spec_tensor = torch.from_numpy(spec_expand).type(torch.FloatTensor)
+	c = Variable(torch.from_numpy(np.array([speaker2id['S015']]))).cuda()
+	result = trainer.test_step(spec_tensor, c, enc_only=True)
+	result = result.squeeze(axis=0).transpose((1, 0))
+	print(result.shape)
+	wav_data = spectrogram2wav(result)
+	# wav_data = spectrogram2wav(spec)
+	write(os.path.join(result_dir, 'result.wav'), rate=16000, data=wav_data)
 
