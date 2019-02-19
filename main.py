@@ -48,7 +48,7 @@ if __name__ == '__main__':
 	model_path.add_argument('--ckpt_dir', type=str, default='./ckpt', help='checkpoint directory for training storage')
 	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
 	model_path.add_argument('--model_name', type=str, default='model.pth', help='base model name for training')
-	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-ae-108000', help='the model to restore for training, the command --load_model will load this model')
+	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-s1-100000', help='the model to restore for training, the command --load_model will load this model')
 	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-ae-108000', help='the model to restore for testing, the command --test will load this model')
 	args = parser.parse_args()
 
@@ -90,12 +90,12 @@ if __name__ == '__main__':
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name))
 
 		if args.train:
-			trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
-			trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
-			trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
+			# trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
+			# trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
+			# trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
 			
-			# trainer.add_duo_loader(source_loader, target_loader)
-			# trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
+			trainer.add_duo_loader(source_loader, target_loader)
+			trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
 
 	if args.test or args.test_single:
 
