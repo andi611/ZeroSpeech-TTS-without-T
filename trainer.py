@@ -365,7 +365,7 @@ class Trainer(object):
 					self.patch_opt.step()
 					
 					# calculate acc
-					acc = cal_acc(real_logits, c)
+					acc = cal_acc(real_logits, c, shift=True)
 					info = {
 						f'{flag}/w_dis': w_dis.item(),
 						f'{flag}/gp': gp.item(), 
@@ -407,7 +407,7 @@ class Trainer(object):
 				self.gen_opt.step()
 				
 				# calculate acc
-				acc = cal_acc(fake_logits, c_prime)
+				acc = cal_acc(fake_logits, c_prime, shift=True)
 				info = {
 					f'{flag}/loss_adv': loss_adv.item(),
 					f'{flag}/fake_loss_clf': loss_clf.item(),
