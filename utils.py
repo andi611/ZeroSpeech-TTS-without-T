@@ -76,9 +76,12 @@ def calculate_gradients_penalty(netD, real_data, fake_data):
 	return gradients_penalty
 
 
-def cal_acc(logits, y_true):
+def cal_acc(logits, y_true, shift=False):
 	_, ind = torch.max(logits, dim=1)
-	acc = torch.sum((ind == y_true).type(torch.FloatTensor)) / y_true.size(0)
+	if shift:
+		acc = torch.sum((ind == y_true - 100).type(torch.FloatTensor)) / y_true.size(0)
+	else:
+		acc = torch.sum((ind == y_true).type(torch.FloatTensor)) / y_true.size(0)
 	return acc
 
 
