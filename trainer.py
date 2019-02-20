@@ -23,7 +23,7 @@ from model import SpeakerClassifier
 from model import PatchDiscriminator
 from utils import Logger, cc, to_var
 from utils import grad_clip, reset_grad
-from utils import cal_acc, calculate_gradients_penalty
+from utils import calculate_gradients_penalty
 
 
 class Trainer(object):
@@ -181,6 +181,14 @@ class Trainer(object):
 		else: 
 			loss = criterion(logits, y_true)
 		return loss
+
+	def cal_acc(self, logits, y_true, shift=False):
+		_, ind = torch.max(logits, dim=1)
+		if shift:
+			acc = torch.sum((ind == y_true - self.shift_c).type(torch.FloatTensor)) / y_true.size(0)
+		else:
+			acc = torch.sum((ind == y_true).type(torch.FloatTensor)) / y_true.size(0)
+		return acc
 
 
 	def train(self, model_path, flag='train', mode='train'):

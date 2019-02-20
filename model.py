@@ -16,6 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+
 class GradReverse(torch.autograd.Function):
 	@staticmethod
 	#def forward(ctx, x, _lambda=0.0001):
@@ -26,6 +27,7 @@ class GradReverse(torch.autograd.Function):
 	@staticmethod
 	def backward(ctx, grad_output):
 		return grad_output.neg()
+
 
 def pad_layer(inp, layer, is_2d=False):
 	if type(layer.kernel_size) == tuple:
@@ -49,6 +51,7 @@ def pad_layer(inp, layer, is_2d=False):
 	out = layer(inp)
 	return out
 
+
 def pixel_shuffle_1d(inp, upscale_factor=2):
 	batch_size, channels, in_width = inp.size()
 	channels //= upscale_factor
@@ -59,9 +62,11 @@ def pixel_shuffle_1d(inp, upscale_factor=2):
 	shuffle_out = shuffle_out.view(batch_size, channels, out_width)
 	return shuffle_out
 
+
 def upsample(x, scale_factor=2):
 	x_up = F.interpolate(x, scale_factor=2, mode='nearest')
 	return x_up
+
 
 def GLU(inp, layer, res=True):
 	kernel_size = layer.kernel_size[0]
@@ -78,6 +83,7 @@ def GLU(inp, layer, res=True):
 	else:
 		H = A * B
 	return H
+
 
 def highway(inp, layers, gates, act):
 	# permute
@@ -96,6 +102,7 @@ def highway(inp, layers, gates, act):
 	out = out_permuted.permute(0, 2, 1)
 	return out
 
+
 def RNN(inp, layer):
 	inp_permuted = inp.permute(2, 0, 1)
 	state_mul = (int(layer.bidirectional) + 1) * layer.num_layers
@@ -104,6 +111,7 @@ def RNN(inp, layer):
 	out_permuted, _ = layer(inp_permuted, zero_state)
 	out_rnn = out_permuted.permute(1, 2, 0)
 	return out_rnn
+
 
 def linear(inp, layer):
 	batch_size = inp.size(0)
@@ -116,11 +124,13 @@ def linear(inp, layer):
 	out = out_permuted.permute(0, 2, 1)
 	return out
 
+
 def append_emb(emb, expand_size, output):
 	emb = emb.unsqueeze(dim=2)
 	emb_expand = emb.expand(emb.size(0), emb.size(1), expand_size)
 	output = torch.cat([output, emb_expand], dim=1)
 	return output
+
 
 class PatchDiscriminator(nn.Module):
 	def __init__(self, n_class=33, ns=0.2, dp=0.1):
@@ -175,6 +185,7 @@ class PatchDiscriminator(nn.Module):
 		else:
 			return mean_val
 
+
 class WeakSpeakerClassifier(nn.Module):
 	def __init__(self, c_in=512, c_h=512, n_class=8, dp=0.1, ns=0.01):
 		super(WeakSpeakerClassifier, self).__init__()
@@ -206,6 +217,7 @@ class WeakSpeakerClassifier(nn.Module):
 		out = self.conv3(out)
 		out = out.view(out.size()[0], -1)
 		return out
+
 
 class SpeakerClassifier(nn.Module):
 	def __init__(self, c_in=512, c_h=512, n_class=8, dp=0.1, ns=0.01):
@@ -248,6 +260,7 @@ class SpeakerClassifier(nn.Module):
 		out = self.conv9(out)
 		out = out.view(out.size()[0], -1)
 		return out
+
 
 class LatentDiscriminator(nn.Module):
 	def __init__(self, c_in=1024, c_h=512, ns=0.2, dp=0.1):
@@ -293,6 +306,7 @@ class LatentDiscriminator(nn.Module):
 		mean_value = torch.mean(out, dim=1)
 		return mean_value
 
+
 class CBHG(nn.Module):
 	def __init__(self, c_in=80, c_out=513):
 		super(CBHG, self).__init__()
@@ -336,6 +350,7 @@ class CBHG(nn.Module):
 		out = linear(out_rnn, self.linear2)
 		out = F.sogmoid(out)
 		return out
+
 
 class Decoder(nn.Module):
 	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, emb_size=128, ns=0.2):
@@ -413,6 +428,7 @@ class Decoder(nn.Module):
 		out = linear(out, self.linear)
 		#out = torch.tanh(out)
 		return out
+
 
 class Encoder(nn.Module):
 	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5):
