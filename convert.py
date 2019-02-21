@@ -173,7 +173,7 @@ def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_
 						   result_dir=dir_path)
 
 
-def test_single(model_path, hps_path, speaker2id_path, result_dir):
+def test_single(model_path, hps_path, speaker2id_path, result_dir, speaker):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
 
@@ -188,7 +188,7 @@ def test_single(model_path, hps_path, speaker2id_path, result_dir):
 	_, spec = get_spectrograms(filename)
 	spec_expand = np.expand_dims(spec, axis=0)
 	spec_tensor = torch.from_numpy(spec_expand).type(torch.FloatTensor)
-	c = Variable(torch.from_numpy(np.array([speaker2id['S015']]))).cuda()
+	c = Variable(torch.from_numpy(np.array([speaker2id[speaker]]))).cuda()
 	result = trainer.test_step(spec_tensor, c, enc_only=True)
 	result = result.squeeze(axis=0).transpose((1, 0))
 	print(result.shape)
