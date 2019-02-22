@@ -183,7 +183,8 @@ def test_single(model_path, hps_path, speaker2id_path, result_dir, speaker):
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
 
-	filename = './data/english/train/unit/S015_0361841101.wav' 
+	#filename = './data/english/train/unit/S015_0361841101.wav' 
+	filename = './data/english/train/unit/S119_1561145062.wav' 
 	
 	_, spec = get_spectrograms(filename)
 	spec_expand = np.expand_dims(spec, axis=0)
