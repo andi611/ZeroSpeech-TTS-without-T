@@ -52,7 +52,7 @@ class Trainer(object):
 		#---stage one---#
 		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp))
 		self.Decoder = cc(Decoder(ns=ns, c_a=hps.n_speakers, emb_size=emb_size))
-		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, n_class=hps.n_speakers, dp=hps.dis_dp))
+		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
 		#---stage one opts---#
 		params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())
@@ -62,7 +62,8 @@ class Trainer(object):
 		#---stage two---#
 		self.Generator = cc(Decoder(ns=ns, c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers, emb_size=emb_size))
 		self.PatchDiscriminator = cc(nn.DataParallel(PatchDiscriminator(ns=ns, n_class=hps.n_speakers \
-																		if not self.targeted_G else hps.n_target_speakers)))
+																		if not self.targeted_G else hps.n_target_speakers,
+																		seg_len=hps.seg_len)))
 		
 		#---stage two opts---#
 		self.gen_opt = optim.Adam(self.Generator.parameters(), lr=self.hps.lr, betas=betas)
@@ -244,7 +245,7 @@ class Trainer(object):
 				self.clf_opt.step()
 				
 				# calculate acc
-				acc = cal_acc(logits, c)
+				acc = self.cal_acc(logits, c)
 				info = {
 					f'{flag}/pre_loss_clf': loss_clf.item(),
 					f'{flag}/pre_acc': acc,
@@ -289,7 +290,7 @@ class Trainer(object):
 					self.clf_opt.step()
 					
 					# calculate acc
-					acc = cal_acc(logits, c)
+					acc = self.cal_acc(logits, c)
 					info = {
 						f'{flag}/D_loss_clf': loss_clf.item(),
 						f'{flag}/D_acc': acc,
@@ -314,7 +315,7 @@ class Trainer(object):
 				
 				# classify speaker
 				logits = self.clf_step(enc)
-				acc = cal_acc(logits, c)
+				acc = self.cal_acc(logits, c)
 				loss_clf = self.cal_loss(logits, c)
 				
 				# maximize classification loss
@@ -373,7 +374,7 @@ class Trainer(object):
 					self.patch_opt.step()
 					
 					# calculate acc
-					acc = cal_acc(real_logits, c, shift=True)
+					acc = self.cal_acc(real_logits, c, shift=True)
 					info = {
 						f'{flag}/w_dis': w_dis.item(),
 						f'{flag}/gp': gp.item(), 
@@ -415,7 +416,7 @@ class Trainer(object):
 				self.gen_opt.step()
 				
 				# calculate acc
-				acc = cal_acc(fake_logits, c_prime, shift=True)
+				acc = self.cal_acc(fake_logits, c_prime, shift=True)
 				info = {
 					f'{flag}/loss_adv': loss_adv.item(),
 					f'{flag}/fake_loss_clf': loss_clf.item(),

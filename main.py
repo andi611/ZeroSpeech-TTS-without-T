@@ -30,6 +30,7 @@ if __name__ == '__main__':
 
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
+	static_setting.add_argument('--resample', type=bool, default=bool(1), help='whether to just process the sampling procedure in the preprocessing process')
 	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
 	static_setting.add_argument('--speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
@@ -68,7 +69,8 @@ if __name__ == '__main__':
 				   args.speaker2id_path, 
 				   seg_len=hps.seg_len,
 				   n_samples=hps.n_samples,
-				   dset=args.flag)
+				   dset=args.flag,
+				   resample=args.resample)
 
 	if args.train:
 		
@@ -91,8 +93,8 @@ if __name__ == '__main__':
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name))
 
 		if args.train:
-			trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
-			trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
+			# trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
+			# trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
 			trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
 			
 			trainer.add_duo_loader(source_loader, target_loader)

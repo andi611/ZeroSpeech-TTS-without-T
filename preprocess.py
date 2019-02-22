@@ -33,19 +33,21 @@ def preprocess(source_path,
 			   speaker2id_path,
 			   seg_len=128, 
 			   n_samples=200000,
-			   dset='train'):
-
-	with h5py.File(dataset_path, 'w') as h5py_file:
-		grps = [h5py_file.create_group('train'), h5py_file.create_group('test')]
-		print('[Processor] - making training dataset...')
-		make_dataset(grps, root_dir=source_path)
-		make_dataset(grps, root_dir=target_path)
-		
-		print('[Processor] - making testing dataset...')
-		make_dataset(grps, root_dir=test_path, make_test=True)
+			   dset='train',
+			   resample=False):
+	
+	if not resample:
+		with h5py.File(dataset_path, 'w') as h5py_file:
+			grps = [h5py_file.create_group('train'), h5py_file.create_group('test')]
+			print('[Processor] - making training dataset...')
+			make_dataset(grps, root_dir=source_path)
+			make_dataset(grps, root_dir=target_path)
+			
+			print('[Processor] - making testing dataset...')
+			make_dataset(grps, root_dir=test_path, make_test=True)
 
 	# stage 1 training samples
-	print('[Processor] - making stage 1 training samples...')
+	print('[Processor] - making stage 1 training samples with segment length = ', seg_len)
 	make_samples(dataset_path, index_path, speaker2id_path,
 				make_object='all',
 				seg_len=seg_len, 
@@ -54,7 +56,7 @@ def preprocess(source_path,
 	print()
 
 	# stage 2 training source samples
-	print('[Processor] - making stage 2 training source samples...')
+	print('[Processor] - making stage 2 training source samples with segment length = ', seg_len)
 	make_samples(dataset_path, index_source_path, speaker2id_path,
 				make_object='source',
 				seg_len=seg_len, 
@@ -63,7 +65,7 @@ def preprocess(source_path,
 	print()
 
 	# stage 2 training target samples
-	print('[Processor] - making stage 2 training target samples...')
+	print('[Processor] - making stage 2 training target samples with segment length = ', seg_len)
 	make_samples(dataset_path, index_target_path, speaker2id_path,
 				make_object='target',
 				seg_len=seg_len, 

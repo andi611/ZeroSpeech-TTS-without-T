@@ -133,7 +133,7 @@ def append_emb(emb, expand_size, output):
 
 
 class PatchDiscriminator(nn.Module):
-	def __init__(self, n_class=33, ns=0.2, dp=0.1):
+	def __init__(self, n_class=33, ns=0.2, dp=0.1, seg_len=128):
 		super(PatchDiscriminator, self).__init__()
 		self.ns = ns
 		self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=2)
@@ -142,9 +142,14 @@ class PatchDiscriminator(nn.Module):
 		self.conv4 = nn.Conv2d(256, 512, kernel_size=5, stride=2)
 		self.conv5 = nn.Conv2d(512, 512, kernel_size=5, stride=2)
 		self.conv6 = nn.Conv2d(512, 32, kernel_size=1)
-		self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 4))
-		#self.conv_classify = nn.Conv2d(512, n_class, kernel_size=(17, 4))
-		self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 4))
+		if seg_len == 128:
+			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 4))
+			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 4))
+		elif seg_len == 64:
+			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 2))
+			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 2))
+		else:
+			raise NotImplementedError('Segement length {} is not supported!'.format(seg_len))
 		self.drop1 = nn.Dropout2d(p=dp)
 		self.drop2 = nn.Dropout2d(p=dp)
 		self.drop3 = nn.Dropout2d(p=dp)
@@ -186,41 +191,8 @@ class PatchDiscriminator(nn.Module):
 			return mean_val
 
 
-class WeakSpeakerClassifier(nn.Module):
-	def __init__(self, c_in=512, c_h=512, n_class=8, dp=0.1, ns=0.01):
-		super(WeakSpeakerClassifier, self).__init__()
-		self.dp, self.ns = dp, ns
-		self.conv1 = nn.Conv1d(c_in, c_h, kernel_size=3)
-		self.conv2 = nn.Conv1d(c_h, c_h//2, kernel_size=3)
-		self.conv3 = nn.Conv1d(c_h//2, n_class, kernel_size=16)
-		self.drop1 = nn.Dropout(p=dp)
-		self.drop2 = nn.Dropout(p=dp)
-		self.ins_norm1 = nn.InstanceNorm1d(c_h)
-		self.ins_norm2 = nn.InstanceNorm1d(c_h//2)
-
-	def conv_block(self, x, conv_layers, after_layers, res=True):
-		out = x
-		for layer in conv_layers:
-			out = pad_layer(out, layer)
-			out = F.leaky_relu(out, negative_slope=self.ns)
-		for layer in after_layers:
-			out = layer(out)
-		if res:
-			out = out + x
-		return out
-
-	def forward(self, x, _lambda=0.0001, gr=False):
-		if gr:
-			x = GradReverse(_lambda=_lambda).apply(x)
-		out = self.conv_block(x, [self.conv1], [self.ins_norm1, self.drop1], res=False)
-		out = self.conv_block(out, [self.conv2], [self.ins_norm2, self.drop2], res=False)
-		out = self.conv3(out)
-		out = out.view(out.size()[0], -1)
-		return out
-
-
 class SpeakerClassifier(nn.Module):
-	def __init__(self, c_in=512, c_h=512, n_class=8, dp=0.1, ns=0.01):
+	def __init__(self, c_in=512, c_h=512, n_class=8, dp=0.1, ns=0.01, seg_len=128):
 		super(SpeakerClassifier, self).__init__()
 		self.dp, self.ns = dp, ns
 		self.conv1 = nn.Conv1d(c_in, c_h, kernel_size=5)
@@ -231,7 +203,12 @@ class SpeakerClassifier(nn.Module):
 		self.conv6 = nn.Conv1d(c_h, c_h, kernel_size=5)
 		self.conv7 = nn.Conv1d(c_h, c_h//2, kernel_size=3)
 		self.conv8 = nn.Conv1d(c_h//2, c_h//4, kernel_size=3)
-		self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=16)
+		if seg_len == 128:
+			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=16)
+		elif seg_len == 64:
+			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=8)
+		else:
+			raise NotImplementedError('Segement length {} is not supported!'.format(seg_len))
 		self.drop1 = nn.Dropout(p=dp)
 		self.drop2 = nn.Dropout(p=dp)
 		self.drop3 = nn.Dropout(p=dp)
@@ -260,51 +237,6 @@ class SpeakerClassifier(nn.Module):
 		out = self.conv9(out)
 		out = out.view(out.size()[0], -1)
 		return out
-
-
-class LatentDiscriminator(nn.Module):
-	def __init__(self, c_in=1024, c_h=512, ns=0.2, dp=0.1):
-		super(LatentDiscriminator, self).__init__()
-		self.ns = ns
-		self.conv1 = nn.Conv1d(c_in, c_h, kernel_size=5)
-		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=5)
-		self.conv3 = nn.Conv1d(c_h, c_h, kernel_size=5)
-		self.conv4 = nn.Conv1d(c_h, c_h, kernel_size=5)
-		self.conv5 = nn.Conv1d(c_h, c_h, kernel_size=5)
-		self.conv6 = nn.Conv1d(c_h, c_h, kernel_size=5)
-		self.conv6 = nn.Conv1d(c_h, c_h, kernel_size=5)
-		self.conv7 = nn.Conv1d(c_h, c_h, kernel_size=5)
-		self.conv8 = nn.Conv1d(c_h, c_h, kernel_size=5)
-		self.conv9 = nn.Conv1d(c_h, 1, kernel_size=16)
-		self.drop1 = nn.Dropout(p=dp)
-		self.drop2 = nn.Dropout(p=dp)
-		self.drop3 = nn.Dropout(p=dp)
-		self.drop4 = nn.Dropout(p=dp)
-		self.ins_norm1 = nn.InstanceNorm1d(c_h)
-		self.ins_norm2 = nn.InstanceNorm1d(c_h)
-		self.ins_norm3 = nn.InstanceNorm1d(c_h)
-		self.ins_norm4 = nn.InstanceNorm1d(c_h)
-
-	def conv_block(self, x, conv_layers, after_layers, res=True):
-		out = x
-		for layer in conv_layers:
-			out = pad_layer(out, layer)
-			out = F.leaky_relu(out, negative_slope=self.ns)
-		for layer in after_layers:
-			out = layer(out)
-		if res:
-			out = out + x
-		return out
-
-	def forward(self, x):
-		out = self.conv_block(x, [self.conv1, self.conv2], [self.ins_norm1, self.drop1], res=False)
-		out = self.conv_block(out, [self.conv3, self.conv4], [self.ins_norm2, self.drop2], res=True)
-		out = self.conv_block(out, [self.conv5, self.conv6], [self.ins_norm3, self.drop3], res=True)
-		out = self.conv_block(out, [self.conv7, self.conv8], [self.ins_norm4, self.drop4], res=True)
-		out = self.conv9(out)
-		out = out.view(out.size()[0], -1)
-		mean_value = torch.mean(out, dim=1)
-		return mean_value
 
 
 class CBHG(nn.Module):
