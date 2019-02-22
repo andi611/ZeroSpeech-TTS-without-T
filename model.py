@@ -141,7 +141,8 @@ def gumbel_softmax(logits, temperature=0.1):
 	
 	def _sample_gumbel(shape, eps=1e-20):
 		U = torch.rand(shape)
-		return -Variable(torch.log(-torch.log(U + eps) + eps))
+		dist = -Variable(torch.log(-torch.log(U + eps) + eps))
+		return dist.cuda() if torch.cuda.is_available() else dist
 
 	def _gumbel_softmax_sample(logits, temperature):
 		y = logits + _sample_gumbel(logits.size())
