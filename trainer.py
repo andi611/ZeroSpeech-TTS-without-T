@@ -34,6 +34,7 @@ class Trainer(object):
 		self.max_keep = hps.max_to_keep
 		self.logger = Logger(log_dir)
 		self.targeted_G = targeted_G
+		self.one_hot = one_hot
 		if not self.targeted_G: 
 			self.sample_weights = torch.ones(hps.n_speakers)
 		else:
@@ -50,7 +51,7 @@ class Trainer(object):
 		betas = (0.5, 0.9)
 
 		#---stage one---#
-		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp))
+		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, one_hot=self.one_hot))
 		self.Decoder = cc(Decoder(ns=ns, c_a=hps.n_speakers, emb_size=emb_size))
 		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
@@ -70,8 +71,8 @@ class Trainer(object):
 		self.patch_opt = optim.Adam(self.PatchDiscriminator.parameters(), lr=self.hps.lr, betas=betas)
 
 
-	def save_model(self, model_path, name, iteration, enc_only=True):
-		if not enc_only:
+	def save_model(self, model_path, name, iteration, model_all=True):
+		if model_all:
 			all_model = {
 				'encoder': self.Encoder.state_dict(),
 				'decoder': self.Decoder.state_dict(),
@@ -94,13 +95,13 @@ class Trainer(object):
 			self.model_kept.pop(0)
 
 
-	def load_model(self, model_path, enc_only=True, verbose=True):
+	def load_model(self, model_path, model_all=True, verbose=True):
 		if verbose: print('[Trainer] - load model from {}'.format(model_path))
 		all_model = torch.load(model_path)
 		self.Encoder.load_state_dict(all_model['encoder'])
 		self.Decoder.load_state_dict(all_model['decoder'])
 		self.Generator.load_state_dict(all_model['generator'])
-		if not enc_only:
+		if model_all:
 			self.SpeakerClassifier.load_state_dict(all_model['classifier'])
 			self.PatchDiscriminator.load_state_dict(all_model['patch_discriminator'])
 
@@ -111,6 +112,7 @@ class Trainer(object):
 
 
 	def set_eval(self):
+		self.testing_shift_c = Variable(torch.from_numpy(np.array([int(self.hps.n_speakers-self.hps.n_target_speakers)]))).cuda()
 		self.Encoder.eval()
 		self.Decoder.eval()
 		self.Generator.eval()
@@ -124,7 +126,9 @@ class Trainer(object):
 		enc = self.Encoder(x)
 		x_tilde = self.Decoder(enc, c)
 		if not enc_only:
-			x_tilde += self.Generator(enc, c) if not self.targeted_G else self.Generator(enc, c - self.hps.n_speakers)
+			if self.targeted_G and (c - self.testing_shift_c).data.cpu().numpy()[0] not in range(self.hps.n_target_speakers):
+				raise RuntimeError('This generator can only convert to target speakers!')
+			x_tilde += self.Generator(enc, c) if not self.targeted_G else self.Generator(enc, c - self.testing_shift_c)
 		return x_tilde.data.cpu().numpy()
 
 

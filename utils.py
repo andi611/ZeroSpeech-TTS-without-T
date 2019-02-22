@@ -13,7 +13,6 @@
 import torch
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.autograd import Variable
 from tensorboardX import SummaryWriter
 
@@ -53,7 +52,7 @@ def reset_grad(net_list):
 
 def grad_clip(net_list, max_grad_norm):
 	for net in net_list:
-		torch.nn.utils.clip_grad_norm_(net.parameters(), max_grad_norm)
+		nn.utils.clip_grad_norm_(net.parameters(), max_grad_norm)
 
 
 def calculate_gradients_penalty(netD, real_data, fake_data):
@@ -76,30 +75,6 @@ def calculate_gradients_penalty(netD, real_data, fake_data):
 	gradients_penalty = (1. - torch.sqrt(1e-12 + torch.sum(gradients.view(gradients.size(0), -1)**2, dim=1))) ** 2
 	gradients_penalty = torch.mean(gradients_penalty)
 	return gradients_penalty
-
-
-"""
-	Reference: https://gist.github.com/yzh119/fd2146d2aeb329d067568a493b20172f
-	input: [*, n_class]
-	return: [*, n_class] an one-hot vector
-"""
-def gumbel_softmax(logits, temperature=0.1):
-	
-	def _sample_gumbel(shape, eps=1e-20):
-		U = torch.rand(shape)
-		return -Variable(torch.log(-torch.log(U + eps) + eps))
-
-	def _gumbel_softmax_sample(logits, temperature):
-		y = logits + _sample_gumbel(logits.size())
-		return F.softmax(y / temperature, dim=-1)
-
-	y = _gumbel_softmax_sample(logits, temperature)
-	shape = y.size()
-	_, ind = y.max(dim=-1)
-	y_hard = torch.zeros_like(y).view(-1, shape[-1])
-	y_hard.scatter_(1, ind.view(-1, 1), 1)
-	y_hard = y_hard.view(*shape)
-	return (y_hard - y).detach() + y
 
 
 class Logger(object):

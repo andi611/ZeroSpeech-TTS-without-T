@@ -95,11 +95,11 @@ def convert_x(x, c, trainer, enc_only):
 	return converted
 
 
-def get_trainer(hps_path, model_path, targeted_G, one_hot, enc_only):
+def get_trainer(hps_path, model_path, targeted_G, one_hot):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
 	trainer = Trainer(hps, None, targeted_G, one_hot)
-	trainer.load_model(model_path, enc_only=enc_only)
+	trainer.load_model(model_path, model_all=False)
 	return trainer
 
 
@@ -139,7 +139,7 @@ def convert_all_mc(trainer,
 			sf.write(wav_path, wav_data, 16000, 'PCM_24')
 
 
-def test(trainer, data_path, speaker2id_path, result_dir, flag):
+def test(trainer, data_path, speaker2id_path, result_dir, enc_only, flag):
 
 	f_h5 = h5py.File(data_path, 'r')
 	
@@ -171,7 +171,7 @@ def test(trainer, data_path, speaker2id_path, result_dir, flag):
 						   result_dir=dir_path)
 
 
-def test_single(trainer, speaker2id_path, result_dir, s_speaker, t_speaker):
+def test_single(trainer, speaker2id_path, result_dir, enc_only, s_speaker, t_speaker):
 
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
@@ -187,7 +187,7 @@ def test_single(trainer, speaker2id_path, result_dir, s_speaker, t_speaker):
 	spec_expand = np.expand_dims(spec, axis=0)
 	spec_tensor = torch.from_numpy(spec_expand).type(torch.FloatTensor)
 	c = Variable(torch.from_numpy(np.array([speaker2id[t_speaker]]))).cuda()
-	result = trainer.test_step(spec_tensor, c, enc_only=True)
+	result = trainer.test_step(spec_tensor, c, enc_only=enc_only)
 	result = result.squeeze(axis=0).transpose((1, 0))
 	wav_data = spectrogram2wav(result)
 	write(os.path.join(result_dir, 'result.wav'), rate=16000, data=wav_data)

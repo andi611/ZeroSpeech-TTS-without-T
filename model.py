@@ -132,6 +132,30 @@ def append_emb(emb, expand_size, output):
 	return output
 
 
+"""
+	Reference: https://gist.github.com/yzh119/fd2146d2aeb329d067568a493b20172f
+	input: [*, n_class]
+	return: [*, n_class] an one-hot vector
+"""
+def gumbel_softmax(logits, temperature=0.1):
+	
+	def _sample_gumbel(shape, eps=1e-20):
+		U = torch.rand(shape)
+		return -Variable(torch.log(-torch.log(U + eps) + eps))
+
+	def _gumbel_softmax_sample(logits, temperature):
+		y = logits + _sample_gumbel(logits.size())
+		return F.softmax(y / temperature, dim=-1)
+
+	y = _gumbel_softmax_sample(logits, temperature)
+	shape = y.size()
+	_, ind = y.max(dim=-1)
+	y_hard = torch.zeros_like(y).view(-1, shape[-1])
+	y_hard.scatter_(1, ind.view(-1, 1), 1)
+	y_hard = y_hard.view(*shape)
+	return (y_hard - y).detach() + y
+
+
 class PatchDiscriminator(nn.Module):
 	def __init__(self, n_class=33, ns=0.2, dp=0.1, seg_len=128):
 		super(PatchDiscriminator, self).__init__()
@@ -363,9 +387,10 @@ class Decoder(nn.Module):
 
 
 class Encoder(nn.Module):
-	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5):
+	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, one_hot=False):
 		super(Encoder, self).__init__()
 		self.ns = ns
+		self.one_hot = one_hot
 		self.conv1s = nn.ModuleList(
 				[nn.Conv1d(c_in, c_h1, kernel_size=k) for k in range(1, 8)]
 			)
@@ -438,6 +463,9 @@ class Encoder(nn.Module):
 		out_rnn = RNN(out, self.RNN)
 		out = torch.cat([out, out_rnn], dim=1)
 		out = linear(out, self.linear)
-		out = F.leaky_relu(out, negative_slope=self.ns)
+		if self.one_hot:
+			out = gumbel_softmax(out)
+		else:
+			out = F.leaky_relu(out, negative_slope=self.ns)
 		return out
 

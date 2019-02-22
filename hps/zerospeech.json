@@ -11,7 +11,7 @@
 	"dis_dp": 0.3,
 	"max_grad_norm": 5,
 	"max_step": 5,
-	"seg_len": 64,
+	"seg_len": 128,
 	"n_samples": 200000,
 	"emb_size": 512,
 	"n_speakers": 102,
