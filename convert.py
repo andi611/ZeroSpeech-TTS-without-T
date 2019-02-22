@@ -95,10 +95,10 @@ def convert_x(x, c, trainer, enc_only):
 	return converted
 
 
-def get_model(hps_path, model_path, targeted_G, enc_only):
+def get_trainer(hps_path, model_path, targeted_G, one_hot, enc_only):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
-	trainer = Trainer(hps, None, targeted_G)
+	trainer = Trainer(hps, None, targeted_G, one_hot)
 	trainer.load_model(model_path, enc_only=enc_only)
 	return trainer
 
@@ -139,7 +139,7 @@ def convert_all_mc(trainer,
 			sf.write(wav_path, wav_data, 16000, 'PCM_24')
 
 
-def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_G, enc_only, flag):
+def test(trainer, data_path, speaker2id_path, result_dir, flag):
 
 	f_h5 = h5py.File(data_path, 'r')
 	
@@ -153,8 +153,6 @@ def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_
 
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
-
-	trainer = get_model(hps_path=hps_path, model_path=model_path, targeted_G=targeted_G, enc_only=True)
 
 	print('[Tester] - Converting all testing utterances from source speakers to target speakers, this may take a while...')
 	for speaker_S in tqdm(source_speakers):
@@ -173,12 +171,7 @@ def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_
 						   result_dir=dir_path)
 
 
-def test_single(model_path, hps_path, speaker2id_path, result_dir, s_speaker, t_speaker):
-	HPS = Hps(hps_path)
-	hps = HPS.get_tuple()
-
-	trainer = Trainer(hps, None, targeted_G=True)
-	trainer.load_model(model_path, enc_only=True)
+def test_single(trainer, speaker2id_path, result_dir, s_speaker, t_speaker):
 
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
@@ -193,7 +186,7 @@ def test_single(model_path, hps_path, speaker2id_path, result_dir, s_speaker, t_
 	_, spec = get_spectrograms(filename)
 	spec_expand = np.expand_dims(spec, axis=0)
 	spec_tensor = torch.from_numpy(spec_expand).type(torch.FloatTensor)
-	c = Variable(torch.from_numpy(np.array([speaker2id[speaker]]))).cuda()
+	c = Variable(torch.from_numpy(np.array([speaker2id[t_speaker]]))).cuda()
 	result = trainer.test_step(spec_tensor, c, enc_only=True)
 	result = result.squeeze(axis=0).transpose((1, 0))
 	wav_data = spectrogram2wav(result)

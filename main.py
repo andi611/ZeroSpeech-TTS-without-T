@@ -15,7 +15,7 @@ import argparse
 from hps.hps import Hps
 from trainer import Trainer
 from preprocess import preprocess
-from convert import test, test_single
+from convert import test, test_single, get_trainer
 from dataloader import Dataset, DataLoader
 
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 	static_setting.add_argument('--resample', type=bool, default=bool(1), help='whether to just process the sampling procedure in the preprocessing process')
 	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
-	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
+	static_setting.add_argument('--one_hot', type=bool, default=bool(1), help='Set the encoder to encode to symbolic discrete one-hot vectors')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
 	
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 		model_path = os.path.join(args.ckpt_dir, args.model_name)
 
 		#---initialize trainer---#
-		trainer = Trainer(hps, data_loader, args.targeted_G)
+		trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot)
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name))
 
 		if args.train:
@@ -106,8 +106,10 @@ if __name__ == '__main__':
 
 		os.makedirs(args.result_dir, exist_ok=True)
 		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
+		trainer = get_trainer(args.hps_path, model_path, args.targeted_G, args.one_hot, args.enc_only)
+
 		if args.test:
-			test(args.dataset_path, model_path, args.hps_path, args.speaker2id_path, args.result_dir, args.targeted_G, args.enc_only, args.flag)
+			test(trainer, args.dataset_path, args.speaker2id_path, args.result_dir, args.flag)
 		if args.test_single:
-			test_single(model_path, args.hps_path, args.speaker2id_path, args.result_dir, args.s_speaker, args.t_speaker)
+			test_single(trainer, args.speaker2id_path, args.result_dir, args.s_speaker, args.t_speaker)
 

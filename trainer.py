@@ -27,7 +27,7 @@ from utils import calculate_gradients_penalty
 
 
 class Trainer(object):
-	def __init__(self, hps, data_loader, targeted_G, log_dir='./log/'):
+	def __init__(self, hps, data_loader, targeted_G, one_hot, log_dir='./log/'):
 		self.hps = hps
 		self.data_loader = data_loader
 		self.model_kept = []
