@@ -50,7 +50,7 @@ if __name__ == '__main__':
 	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
 	model_path.add_argument('--model_name', type=str, default='model.pth', help='base model name for training')
 	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-s1-100000', help='the model to restore for training, the command --load_model will load this model')
-	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-ae-108000', help='the model to restore for testing, the command --test will load this model')
+	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-s2-150000', help='the model to restore for testing, the command --test will load this model')
 	args = parser.parse_args()
 
 	HPS = Hps(args.hps_path)
