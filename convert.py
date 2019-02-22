@@ -173,7 +173,7 @@ def test(data_path, model_path, hps_path, speaker2id_path, result_dir, targeted_
 						   result_dir=dir_path)
 
 
-def test_single(model_path, hps_path, speaker2id_path, result_dir, speaker):
+def test_single(model_path, hps_path, speaker2id_path, result_dir, s_speaker, t_speaker):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
 
@@ -183,8 +183,12 @@ def test_single(model_path, hps_path, speaker2id_path, result_dir, speaker):
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
 
-	#filename = './data/english/train/unit/S015_0361841101.wav' 
-	filename = './data/english/train/unit/S119_1561145062.wav' 
+	if s_speaker == 'S015':
+		filename = './data/english/train/unit/S015_0361841101.wav' 
+	elif s_speaker == 'S119':
+		filename = './data/english/train/unit/S119_1561145062.wav' 
+	else:
+		raise NotImplementedError('Please modify path manually!')
 	
 	_, spec = get_spectrograms(filename)
 	spec_expand = np.expand_dims(spec, axis=0)
@@ -192,8 +196,7 @@ def test_single(model_path, hps_path, speaker2id_path, result_dir, speaker):
 	c = Variable(torch.from_numpy(np.array([speaker2id[speaker]]))).cuda()
 	result = trainer.test_step(spec_tensor, c, enc_only=True)
 	result = result.squeeze(axis=0).transpose((1, 0))
-	print(result.shape)
 	wav_data = spectrogram2wav(result)
-	# wav_data = spectrogram2wav(spec)
 	write(os.path.join(result_dir, 'result.wav'), rate=16000, data=wav_data)
+	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, result.shape))
 

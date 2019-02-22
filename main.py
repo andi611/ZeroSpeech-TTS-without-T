@@ -33,7 +33,9 @@ if __name__ == '__main__':
 	static_setting.add_argument('--resample', type=bool, default=bool(1), help='whether to just process the sampling procedure in the preprocessing process')
 	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
-	static_setting.add_argument('--speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
+	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
+	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
+	static_setting.add_argument('--t_speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
 	
 	data_path = parser.add_argument_group('data_path')
 	data_path.add_argument('--source_path', type=str, default='./data/english/train/unit/', help='the zerospeech train unit dataset')
@@ -107,5 +109,5 @@ if __name__ == '__main__':
 		if args.test:
 			test(args.dataset_path, model_path, args.hps_path, args.speaker2id_path, args.result_dir, args.targeted_G, args.enc_only, args.flag)
 		if args.test_single:
-			test_single(model_path, args.hps_path, args.speaker2id_path, args.result_dir, args.speaker)
+			test_single(model_path, args.hps_path, args.speaker2id_path, args.result_dir, args.s_speaker, args.t_speaker)
 
