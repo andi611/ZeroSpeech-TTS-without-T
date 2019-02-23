@@ -30,10 +30,10 @@ if __name__ == '__main__':
 
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
-	static_setting.add_argument('--resample', type=bool, default=bool(1), help='whether to just process the sampling procedure in the preprocessing process')
-	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
-	static_setting.add_argument('--one_hot', type=bool, default=bool(1), help='Set the encoder to encode to symbolic discrete one-hot vectors')
-	static_setting.add_argument('--enc_only', type=bool, default=bool(0), help='whether to predict only with stage 1 audoencoder')
+	static_setting.add_argument('--resample', type=bool, default=True, help='whether to just process the sampling procedure in the preprocessing process')
+	static_setting.add_argument('--targeted_G', type=bool, default=True, help='G can only convert to target speakers and not all speakers')
+	static_setting.add_argument('--one_hot', type=bool, default=False, help='Set the encoder to encode to symbolic discrete one-hot vectors')
+	static_setting.add_argument('--enc_only', type=bool, default=True, help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
 	
