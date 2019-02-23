@@ -327,11 +327,11 @@ class Decoder(nn.Module):
 		self.dense5 = nn.Linear(2*c_h + c_h, c_h)
 		self.linear = nn.Linear(c_h, c_out)
 		# normalization layer
-		self.ins_norm1 = nn.InstanceNorm1d(c_h)
-		self.ins_norm2 = nn.InstanceNorm1d(c_h)
-		self.ins_norm3 = nn.InstanceNorm1d(c_h)
-		self.ins_norm4 = nn.InstanceNorm1d(c_h)
-		self.ins_norm5 = nn.InstanceNorm1d(c_h)
+		self.ins_norm1 = nn.InstanceNorm1d(emb_size)
+		self.ins_norm2 = nn.InstanceNorm1d(emb_size)
+		self.ins_norm3 = nn.InstanceNorm1d(emb_size)
+		self.ins_norm4 = nn.InstanceNorm1d(emb_size)
+		self.ins_norm5 = nn.InstanceNorm1d(emb_size)
 		# embedding layer
 		self.emb1 = nn.Embedding(c_a, emb_size)
 		self.emb2 = nn.Embedding(c_a, emb_size)
