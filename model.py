@@ -310,10 +310,10 @@ class CBHG(nn.Module):
 
 
 class Decoder(nn.Module):
-	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, emb_size=128, ns=0.2):
+	def __init__(self, c_out=513, c_h=512, c_a=8, emb_size=128, ns=0.2):
 		super(Decoder, self).__init__()
 		self.ns = ns
-		self.conv1 = nn.Conv1d(c_in, 2*c_h, kernel_size=3)
+		self.conv1 = nn.Conv1d(emb_size, 2*c_h, kernel_size=3)
 		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=3)
 		self.conv3 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
 		self.conv4 = nn.Conv1d(c_h, c_h, kernel_size=3)
