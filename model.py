@@ -388,7 +388,7 @@ class Decoder(nn.Module):
 
 
 class Encoder(nn.Module):
-	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, one_hot=False):
+	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, one_hot=False):
 		super(Encoder, self).__init__()
 		self.ns = ns
 		self.one_hot = one_hot
@@ -407,7 +407,7 @@ class Encoder(nn.Module):
 		self.dense3 = nn.Linear(c_h2, c_h2)
 		self.dense4 = nn.Linear(c_h2, c_h2)
 		self.RNN = nn.GRU(input_size=c_h2, hidden_size=c_h3, num_layers=1, bidirectional=True)
-		self.linear = nn.Linear(c_h2 + 2*c_h3, c_h2)
+		self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size)
 		# normalization layer
 		self.ins_norm1 = nn.InstanceNorm1d(c_h2)
 		self.ins_norm2 = nn.InstanceNorm1d(c_h2)

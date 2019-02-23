@@ -51,7 +51,7 @@ class Trainer(object):
 		betas = (0.5, 0.9)
 
 		#---stage one---#
-		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, one_hot=self.one_hot))
+		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, emb_size=emb_size, one_hot=self.one_hot))
 		self.Decoder = cc(Decoder(ns=ns, c_a=hps.n_speakers, emb_size=emb_size))
 		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
