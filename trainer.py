@@ -61,7 +61,7 @@ class Trainer(object):
 		self.clf_opt = optim.Adam(self.SpeakerClassifier.parameters(), lr=self.hps.lr, betas=betas)
 		
 		#---stage two---#
-		self.Generator = cc(Decoder(ns=ns, c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers, emb_size=emb_size))
+		self.Generator = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers))
 		self.PatchDiscriminator = cc(nn.DataParallel(PatchDiscriminator(ns=ns, n_class=hps.n_speakers \
 																		if not self.targeted_G else hps.n_target_speakers,
 																		seg_len=hps.seg_len)))
