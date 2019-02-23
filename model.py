@@ -310,10 +310,10 @@ class CBHG(nn.Module):
 
 
 class Decoder(nn.Module):
-	def __init__(self, c_out=513, c_h=512, c_a=8, emb_size=512, ns=0.2):
+	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2):
 		super(Decoder, self).__init__()
 		self.ns = ns
-		self.conv1 = nn.Conv1d(emb_size, 2*c_h, kernel_size=3)
+		self.conv1 = nn.Conv1d(c_in, 2*c_h, kernel_size=3)
 		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=3)
 		self.conv3 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
 		self.conv4 = nn.Conv1d(c_h, c_h, kernel_size=3)
@@ -327,17 +327,17 @@ class Decoder(nn.Module):
 		self.dense5 = nn.Linear(2*c_h + c_h, c_h)
 		self.linear = nn.Linear(c_h, c_out)
 		# normalization layer
-		self.ins_norm1 = nn.InstanceNorm1d(emb_size)
-		self.ins_norm2 = nn.InstanceNorm1d(emb_size)
-		self.ins_norm3 = nn.InstanceNorm1d(emb_size)
-		self.ins_norm4 = nn.InstanceNorm1d(emb_size)
-		self.ins_norm5 = nn.InstanceNorm1d(emb_size)
+		self.ins_norm1 = nn.InstanceNorm1d(c_h)
+		self.ins_norm2 = nn.InstanceNorm1d(c_h)
+		self.ins_norm3 = nn.InstanceNorm1d(c_h)
+		self.ins_norm4 = nn.InstanceNorm1d(c_h)
+		self.ins_norm5 = nn.InstanceNorm1d(c_h)
 		# embedding layer
-		self.emb1 = nn.Embedding(c_a, emb_size)
-		self.emb2 = nn.Embedding(c_a, emb_size)
-		self.emb3 = nn.Embedding(c_a, emb_size)
-		self.emb4 = nn.Embedding(c_a, emb_size)
-		self.emb5 = nn.Embedding(c_a, emb_size)
+		self.emb1 = nn.Embedding(c_a, c_h)
+		self.emb2 = nn.Embedding(c_a, c_h)
+		self.emb3 = nn.Embedding(c_a, c_h)
+		self.emb4 = nn.Embedding(c_a, c_h)
+		self.emb5 = nn.Embedding(c_a, c_h)
 
 	def conv_block(self, x, conv_layers, norm_layer, emb, res=True):
 		# first layer
