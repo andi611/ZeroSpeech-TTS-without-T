@@ -15,7 +15,7 @@ import argparse
 from hps.hps import Hps
 from trainer import Trainer
 from preprocess import preprocess
-from convert import test, test_single, get_trainer
+from convert import test_from_list, cross_test, test_single, get_trainer
 from dataloader import Dataset, DataLoader
 
 
@@ -24,7 +24,8 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='zerospeech_project')
 	parser.add_argument('--preprocess', default=False, action='store_true', help='preprocess the zerospeech dataset')
 	parser.add_argument('--train', default=False, action='store_true', help='start stage 1 and stage 2 training')
-	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on all testing files')
+	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on the testing list provided at --synthesis_list')
+	parser.add_argument('--cross_test', default=False, action='store_true', help='test the trained model on all testing files')
 	parser.add_argument('--test_single', default=False, action='store_true', help='test the trained model on a single file')
 	parser.add_argument('--load_model', default=False, action='store_true', help='whether to load training session from previous checkpoints')
 
@@ -41,6 +42,7 @@ if __name__ == '__main__':
 	data_path.add_argument('--source_path', type=str, default='./data/english/train/unit/', help='the zerospeech train unit dataset')
 	data_path.add_argument('--target_path', type=str, default='./data/english/train/voice/', help='the zerospeech train voice dataset')
 	data_path.add_argument('--test_path', type=str, default='./data/english/test/', help='the zerospeech test dataset')
+	data_path.add_argument('--synthesis_list', type=str, default='./data/english/synthesis.txt/', help='the zerospeech testing list')
 	data_path.add_argument('--dataset_path', type=str, default='./data/dataset.hdf5', help='the processed train dataset (unit + voice)')
 	data_path.add_argument('--index_path', type=str, default='./data/index.json', help='sample training segments from the train dataset, for stage 1 training')
 	data_path.add_argument('--index_source_path', type=str, default='./data/index_source.json', help='sample training source segments from the train dataset, for stage 2 training')
@@ -109,7 +111,9 @@ if __name__ == '__main__':
 		trainer = get_trainer(args.hps_path, model_path, args.targeted_G, args.one_hot)
 
 		if args.test:
-			test(trainer, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, args.flag)
+			test_from_list(trainer, hps.seg_len, args.synthesis_list, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only)
+		if args.cross_test:
+			cross_test(trainer, hps.seg_len, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, flag='test')
 		if args.test_single:
 			test_single(trainer, hps.seg_len, args.speaker2id_path, args.result_dir, args.enc_only, args.s_speaker, args.t_speaker)
 

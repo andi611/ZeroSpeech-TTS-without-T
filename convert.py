@@ -53,46 +53,17 @@ def spectrogram2wav(mag): # Generate wave file from spectrogram
 	return wav.astype(np.float32)
 
 
-def sp2wav(sp): 
-	exp_sp = sp
-	wav_data = spectrogram2wav(exp_sp)
-	return wav_data
-
-
-def get_world_param(f_h5, src_speaker, utt_id, tar_speaker, tar_speaker_id, trainer, dset='test', gen=True):
-	mc = f_h5[f'{dset}/{src_speaker}/{utt_id}/norm_mc'][()]
-	converted_mc = convert_x(mc, tar_speaker_id, trainer, gen=gen)
-	#converted_mc = mc
-	mc_mean = f_h5[f'train/{tar_speaker}'].attrs['mc_mean']
-	mc_std = f_h5[f'train/{tar_speaker}'].attrs['mc_std']
-	converted_mc = converted_mc * mc_std + mc_mean
-	log_f0 = f_h5[f'{dset}/{src_speaker}/{utt_id}/log_f0'][()]
-	src_mean = f_h5[f'train/{src_speaker}'].attrs['f0_mean']
-	src_std = f_h5[f'train/{src_speaker}'].attrs['f0_std']
-	tar_mean = f_h5[f'train/{tar_speaker}'].attrs['f0_mean']
-	tar_std = f_h5[f'train/{tar_speaker}'].attrs['f0_std']
-	index = np.where(log_f0 > 1e-10)[0]
-	log_f0[index] = (log_f0[index] - src_mean) * tar_std / src_std + tar_mean
-	log_f0[index] = np.exp(log_f0[index])
-	f0 = log_f0
-	ap = f_h5[f'{dset}/{src_speaker}/{utt_id}/ap'][()]
-	converted_mc = converted_mc[:ap.shape[0]]
-	sp = pysptk.conversion.mc2sp(converted_mc, alpha=0.41, fftlen=1024)
-	return f0, sp, ap
-
-
 def synthesis(f0, sp, ap, sr=16000):
 	y = pw.synthesize(f0.astype(np.float64), sp.astype(np.float64), ap.astype(np.float64), sr, pw.default_frame_period)
 	return y
 
 
-def convert_x(x, c, trainer, enc_only):
+def convert_x(x, c, trainer, enc_only, verbose=False):
 	c_var = Variable(torch.from_numpy(np.array([c]))).cuda()
-	tensor = torch.from_numpy(np.expand_dims(x, axis=0))
-	tensor = tensor.type(torch.FloatTensor)
-	converted = trainer.test_step(tensor, c_var, enc_only=enc_only)
+	tensor = torch.from_numpy(np.expand_dims(x, axis=0)).type(torch.FloatTensor)
+	converted, enc = trainer.test_step(tensor, c_var, enc_only=enc_only, verbose=verbose)
 	converted = converted.squeeze(axis=0).transpose((1, 0))
-	return converted
+	return converted, enc
 
 
 def get_trainer(hps_path, model_path, targeted_G, one_hot):
@@ -103,72 +74,97 @@ def get_trainer(hps_path, model_path, targeted_G, one_hot):
 	return trainer
 
 
-def convert_all_sp(trainer,
-				   h5_path, 
-				   src_speaker, 
-				   tar_speaker, 
-				   enc_only=True, 
-				   dset='test', 
-				   speaker2id={},
-				   result_dir=''):
-	with h5py.File(h5_path, 'r') as f_h5:
-		for utt_id in f_h5[f'{dset}/{src_speaker}']:
-			try:
-				sp = f_h5[f'{dset}/{src_speaker}/{utt_id}/lin'][()]
-				converted_x = convert_x(sp, speaker2id[tar_speaker], trainer, enc_only=enc_only)
-				wav_data = sp2wav(converted_x)
-				wav_path = os.path.join(result_dir, f'{src_speaker}_{tar_speaker}_{utt_id}.wav')
-				sf.write(wav_path, wav_data, 16000, 'PCM_24')
-			except RuntimeError:
-				print('[Tester] - Unable to process \"{}\" of speaker {}: '.format(utt_id, f_h5[f'{dset}/{src_speaker}']))
-
-
-def convert_all_mc(trainer,
-				   h5_path, 
-				   src_speaker, 
-				   tar_speaker, 
-				   gen=False, 
-				   dset='test', 
-				   speaker2id={},
-				   result_dir=''):
-	with h5py.File(h5_path, 'r') as f_h5:
-		for utt_id in f_h5[f'{dset}/{src_speaker}']:
-			f0, sp, ap = get_world_param(f_h5, src_speaker, utt_id, tar_speaker, tar_speaker_id=speaker2id[tar_speaker], trainer=trainer, dset='test', gen=gen)
-			wav_data = synthesis(f0, sp, ap)
-			wav_path = os.path.join(result_dir, f'{src_speaker}_{tar_speaker}_{utt_id}.wav')
-			sf.write(wav_path, wav_data, 16000, 'PCM_24')
-
-
-def test(trainer, data_path, speaker2id_path, result_dir, enc_only, flag):
-
-	f_h5 = h5py.File(data_path, 'r')
+def convert(trainer,
+			seg_len,
+			src_speaker_spec, 
+			tar_speaker,
+			utt_id,
+			speaker2id,
+			result_dir,
+			enc_only=True): 
 	
-	print('[Tester] - Testing on the {}ing set...'.format(flag))
-	if flag == 'test':
-		source_speakers = sorted(list(f_h5['test'].keys()))
-	elif flag == 'train':
-		source_speakers = [s for s in sorted(list(f_h5['train'].keys())) if s[0] == 'S']
-	target_speakers = [s for s in sorted(list(f_h5['train'].keys())) if s[0] == 'V']
-	print('[Tester] - Source speakers: %i, Target speakers: %i' % (len(source_speakers), len(target_speakers)))
+	if len(src_speaker_spec) > seg_len:
+		converted_results = []
+		converted_encodings = []
+		for idx in range(0, len(src_speaker_spec), seg_len):
+			try: spec_frag = src_speaker_spec[idx:idx+seg_len]
+			except: spec_frag = src_speaker_spec[idx:-1]
+			converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
+			converted_results.append(converted)
+			converted_encodings.append(enc)
 
+		converted_results = np.concatenate(converted_results, axis=0)
+		converted_encodings = np.concatenate(converted_encodings, axis=0)
+		
+		wav_data = spectrogram2wav(converted_results)
+		wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
+		sf.write(wav_path, wav_data, hp.sr, 'PCM_24')
+	else:
+		print('[Tester] - Unable to process \"{}\" of speaker {}: '.format(utt_id, f_h5[f'{dset}/{src_speaker}']))
+
+
+def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path, result_dir, enc_only):
+	
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
 
-	print('[Tester] - Converting all testing utterances from source speakers to target speakers, this may take a while...')
-	for speaker_S in tqdm(source_speakers):
-		for speaker_T in target_speakers:
-			assert speaker_S != speaker_T
-			dir_path = os.path.join(result_dir, f'p{speaker_S}_p{speaker_T}')
-			os.makedirs(dir_path, exist_ok=True)
+	feeds = []
+	with open(synthesis_list, 'r') as f:
+		file = f.read()
+		for line in file:
+			line = line.split()
+			feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
+						  'utt_id' : line[0].split('/')[1].split('_')[1], 
+						  't_id' : line[1], })
 
-			convert_all_sp(trainer,
-						   data_path, 
-						   speaker_S, 
-						   speaker_T,
-						   enc_only=enc_only,
-						   dset=flag,
-						   speaker2id=speaker2id,
-						   result_dir=dir_path)
+	print('[Tester] - Number of files to be resynthesize: ', len(feeds))
+	
+	with h5py.File(data_path, 'r') as f_h5:
+		for feed in feeds:
+			convert(trainer,
+					seg_len,
+					src_speaker_spec=f_h5[f'test/{feed['s_id']}/{feed['utt_id']}/lin'][()], 
+					tar_speaker=feed['t_id'],
+					utt_id=feed['utt_id'],
+					speaker2id=speaker2id,
+					result_dir=dir_path,
+					enc_only=enc_only)
+
+
+
+def cross_test(trainer, seg_len, data_path, speaker2id_path, result_dir, enc_only, flag):
+
+	with h5py.File(data_path, 'r') as f_h5:
+
+		with open(speaker2id_path, 'r') as f_json:
+			speaker2id = json.load(f_json)
+		
+		if flag == 'test':
+			source_speakers = sorted(list(f_h5['test'].keys()))
+		elif flag == 'train':
+			source_speakers = [s for s in sorted(list(f_h5['train'].keys())) if s[0] == 'S']
+		target_speakers = [s for s in sorted(list(f_h5['train'].keys())) if s[0] == 'V']
+
+		print('[Tester] - Testing on the {}ing set...'.format(flag))
+		print('[Tester] - Source speakers: %i, Target speakers: %i' % (len(source_speakers), len(target_speakers)))
+		print('[Tester] - Converting all testing utterances from source speakers to target speakers, this may take a while...')
+	
+		for src_speaker in tqdm(source_speakers):
+			for tar_speaker in target_speakers:
+				assert src_speaker != tar_speaker
+				dir_path = os.path.join(result_dir, f'{src_speaker}_to_{tar_speaker}')
+				os.makedirs(dir_path, exist_ok=True)
+
+				for utt_id in f_h5[f'test/{src_speaker}']:
+					src_speaker_spec = f_h5[f'test/{src_speaker}/{utt_id}/lin'][()]
+					convert(trainer,
+							seg_len,
+							src_speaker_spec, 
+							tar_speaker,
+							utt_id=utt_id,
+							speaker2id=speaker2id,
+							result_dir=dir_path,
+							enc_only=enc_only)
 
 
 def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speaker, t_speaker):
@@ -187,20 +183,15 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 	results = []
 
 	for idx in range(0, len(spec), seg_len):
-		try:
-			spec_frag = spec[idx:idx+seg_len]
-		except: 
-			spec_frag = spec[idx:-1]
-		spec_expand = np.expand_dims(spec_frag, axis=0)
-		spec_tensor = torch.from_numpy(spec_expand).type(torch.FloatTensor)
-		c = Variable(torch.from_numpy(np.array([speaker2id[t_speaker]]))).cuda()
-		result = trainer.test_step(spec_tensor, c, enc_only=enc_only, verbose=True)
-		result = result.squeeze(axis=0).transpose((1, 0))
+		try: spec_frag = spec[idx:idx+seg_len]
+		except: spec_frag = spec[idx:-1]
+		result, enc = convert_x(spec_frag, speaker2id[t_speaker], trainer, enc_only=enc_only, verbose=True)
 		results.append(result)
 
 	results = np.concatenate(results, axis=0)
 	wav_data = spectrogram2wav(results)
 
-	write(os.path.join(result_dir, 'result.wav'), rate=16000, data=wav_data)
+	write(os.path.join(result_dir, 'result.wav'), rate=hp.sr, data=wav_data)
+	sf.write(os.path.join(result_dir, 'result2.wav'), wav_data, hp.sr, 'PCM_24')
 	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, results.shape))
 

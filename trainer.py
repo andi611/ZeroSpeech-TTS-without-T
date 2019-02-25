@@ -126,13 +126,13 @@ class Trainer(object):
 		enc = self.Encoder(x)
 		x_tilde = self.Decoder(enc, c)
 		if not enc_only:
-			if verbose: print('Testing with Autoencoder + Generator: ', enc.data.cpu().numpy())
+			if verbose: print('Testing with Autoencoder + Generator, encoding: ', enc.data.cpu().numpy())
 			if self.targeted_G and (c - self.testing_shift_c).data.cpu().numpy()[0] not in range(self.hps.n_target_speakers):
 				raise RuntimeError('This generator can only convert to target speakers!')
 			x_tilde += self.Generator(enc, c) if not self.targeted_G else self.Generator(enc, c - self.testing_shift_c)
 		else:
-			if verbose: print('Testing with Autoencoder only: ', enc.data.cpu().numpy())
-		return x_tilde.data.cpu().numpy()
+			if verbose: print('Testing with Autoencoder only, encoding: ', enc.data.cpu().numpy())
+		return x_tilde.data.cpu().numpy(), enc.data.cpu().numpy()
 
 
 	def permute_data(self, data):
