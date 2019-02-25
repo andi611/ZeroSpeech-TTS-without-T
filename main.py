@@ -17,6 +17,7 @@ from trainer import Trainer
 from preprocess import preprocess
 from convert import test, test_single, get_trainer
 from dataloader import Dataset, DataLoader
+from discrete import clustering, train_discrete_decoder
 
 
 if __name__ == '__main__':
@@ -26,6 +27,7 @@ if __name__ == '__main__':
 	parser.add_argument('--train', default=False, action='store_true', help='start stage 1 and stage 2 training')
 	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on all testing files')
 	parser.add_argument('--test_single', default=False, action='store_true', help='test the trained model on a single file')
+	parser.add_argument('--discrete', default=False, action='store_true',help='train the discrete model ZeroSpeech needs')
 	parser.add_argument('--load_model', default=False, action='store_true', help='whether to load training session from previous checkpoints')
 
 	static_setting = parser.add_argument_group('static_setting')
@@ -36,6 +38,7 @@ if __name__ == '__main__':
 	static_setting.add_argument('--enc_only', type=bool, default=True, help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
+	static_setting.add_argument('--n_clusters', type=int, default=500, help='how many subword units to use')
 	
 	data_path = parser.add_argument_group('data_path')
 	data_path.add_argument('--source_path', type=str, default='./data/english/train/unit/', help='the zerospeech train unit dataset')
@@ -113,3 +116,14 @@ if __name__ == '__main__':
 		if args.test_single:
 			test_single(trainer, args.speaker2id_path, args.result_dir, args.enc_only, args.s_speaker, args.t_speaker)
 
+
+	if args.discrete:
+		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
+		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
+		data_loader = DataLoader(dataset, hps.batch_size)
+		trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot)
+		data = [d.unsqueeze(0) for d in dataset]
+		data = [trainer.permute_data(d)[1] for d in data]
+		encoded = [trainer.encode_step(x) for x in data]
+		kmeans, look_up = clustering(encoded, n_clusters=args.n_clusters)
+		train_discrete_decoder(trainer, look_up, model_path)
