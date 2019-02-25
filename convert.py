@@ -171,7 +171,7 @@ def test(trainer, data_path, speaker2id_path, result_dir, enc_only, flag):
 						   result_dir=dir_path)
 
 
-def test_single(trainer, speaker2id_path, result_dir, enc_only, s_speaker, t_speaker):
+def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speaker, t_speaker):
 
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
@@ -184,12 +184,23 @@ def test_single(trainer, speaker2id_path, result_dir, enc_only, s_speaker, t_spe
 		raise NotImplementedError('Please modify path manually!')
 	
 	_, spec = get_spectrograms(filename)
-	spec_expand = np.expand_dims(spec, axis=0)
-	spec_tensor = torch.from_numpy(spec_expand).type(torch.FloatTensor)
-	c = Variable(torch.from_numpy(np.array([speaker2id[t_speaker]]))).cuda()
-	result = trainer.test_step(spec_tensor, c, enc_only=enc_only)
-	result = result.squeeze(axis=0).transpose((1, 0))
-	wav_data = spectrogram2wav(result)
+	results = []
+
+	for idx in range(0, len(spec), seg_len):
+		try:
+			spec_frag = spec[idx:idx+seg_len]
+		except: 
+			spec_frag = spec[idx:-1]
+		spec_expand = np.expand_dims(spec_frag, axis=0)
+		spec_tensor = torch.from_numpy(spec_expand).type(torch.FloatTensor)
+		c = Variable(torch.from_numpy(np.array([speaker2id[t_speaker]]))).cuda()
+		result = trainer.test_step(spec_tensor, c, enc_only=enc_only, verbose=True)
+		result = result.squeeze(axis=0).transpose((1, 0))
+		results.append(result)
+
+	results = np.concatenate(results, axis=0)
+	wav_data = spectrogram2wav(results)
+
 	write(os.path.join(result_dir, 'result.wav'), rate=16000, data=wav_data)
-	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, result.shape))
+	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, results.shape))
 

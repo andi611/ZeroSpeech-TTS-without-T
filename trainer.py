@@ -53,7 +53,7 @@ class Trainer(object):
 		#---stage one---#
 		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, emb_size=emb_size, one_hot=self.one_hot))
 		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers))
-		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
+		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size, c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
 		#---stage one opts---#
 		params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())
@@ -120,18 +120,18 @@ class Trainer(object):
 		self.PatchDiscriminator.eval()
 
 
-	def test_step(self, x, c, enc_only=False):
+	def test_step(self, x, c, enc_only=False, verbose=True):
 		self.set_eval()
 		x = to_var(x).permute(0, 2, 1)
 		enc = self.Encoder(x)
 		x_tilde = self.Decoder(enc, c)
 		if not enc_only:
-			print('Testing with Autoencoder + Generator: ', enc.data.cpu().numpy())
+			if verbose: print('Testing with Autoencoder + Generator: ', enc.data.cpu().numpy())
 			if self.targeted_G and (c - self.testing_shift_c).data.cpu().numpy()[0] not in range(self.hps.n_target_speakers):
 				raise RuntimeError('This generator can only convert to target speakers!')
 			x_tilde += self.Generator(enc, c) if not self.targeted_G else self.Generator(enc, c - self.testing_shift_c)
 		else:
-			print('Testing with Autoencoder only: ', enc.data.cpu().numpy())
+			if verbose: print('Testing with Autoencoder only: ', enc.data.cpu().numpy())
 		return x_tilde.data.cpu().numpy()
 
 
