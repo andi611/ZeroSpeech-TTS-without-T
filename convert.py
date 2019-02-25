@@ -107,7 +107,7 @@ def convert(trainer,
 		print('[Tester] - Unable to process \"{}\" of speaker {}: '.format(utt_id, f_h5[f'{dset}/{src_speaker}']))
 
 
-def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path, result_dir, enc_only):
+def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path, result_dir, enc_only, flag='test'):
 	
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
@@ -122,7 +122,9 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 						  't_id' : line[1], })
 
 	print('[Tester] - Number of files to be resynthesize: ', len(feeds))
-	
+	dir_path = os.path.join(result_dir, f'{flag}/')
+	os.makedirs(dir_path, exist_ok=True)
+
 	with h5py.File(data_path, 'r') as f_h5:
 		for feed in feeds:
 			convert(trainer,

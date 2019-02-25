@@ -53,6 +53,7 @@ if __name__ == '__main__':
 	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech.json', help='hyperparameter path')
 	model_path.add_argument('--ckpt_dir', type=str, default='./ckpt', help='checkpoint directory for training storage')
 	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
+	model_path.add_argument('--sub_result_dir', type=str, default='./english/', help='sub result directory for generating zerospeech synthesis results')
 	model_path.add_argument('--model_name', type=str, default='model.pth', help='base model name for training')
 	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-ae-200000', help='the model to restore for training, the command --load_model will load this model')
 	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-s2-150000', help='the model to restore for testing, the command --test will load this model')
@@ -111,6 +112,7 @@ if __name__ == '__main__':
 		trainer = get_trainer(args.hps_path, model_path, args.targeted_G, args.one_hot)
 
 		if args.test:
+			os.makedirs(os.path.join(args.result_dir, args.sub_result_dir), exist_ok=True)
 			test_from_list(trainer, hps.seg_len, args.synthesis_list, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only)
 		if args.cross_test:
 			cross_test(trainer, hps.seg_len, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, flag='test')
