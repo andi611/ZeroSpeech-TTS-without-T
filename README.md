@@ -1,5 +1,5 @@
 # ZeroSpeech 2019: TTS without T
-A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/), the model we used is based on this [paper](https://arxiv.org/pdf/1804.02812.pdf).
+A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/).
 
 ## Quick Start
 
@@ -29,7 +29,7 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	rm -f english.tgz
 	```
 
-2. **After unpacking the dataset into `~/Tacotron-Pytorch/data`, data tree should look like this:**
+2. **After unpacking the dataset into `~/ZeroSpeech-TTS-without-T/data`, data tree should look like this:**
 	```
 	 |- ZeroSpeech-TTS-without-T
 		 |- data
@@ -77,7 +77,7 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 
 
 ## Acknowledgement
-Credits to Ju-chieh Chou for a wonderful Pytorch [implementation](https://github.com/jjery2243542/voice_conversion) of a voice-conversion model, which this work is mainly based on. 
+Credits to Ju-chieh Chou for a wonderful Pytorch [implementation](https://github.com/jjery2243542/voice_conversion) of a voice-conversion model, which we leverage the success of that implementation and built upon it. 
 
 ## TODO
 * Add more configurable hparams
