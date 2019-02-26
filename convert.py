@@ -187,15 +187,15 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 		raise NotImplementedError('Please modify path manually!')
 	
 	_, spec = get_spectrograms(filename)
-	wave_data = convert(trainer,
-				   		seg_len,
-						src_speaker_spec=spec, 
-						tar_speaker=t_speaker,
-						utt_id='',
-						speaker2id=speaker2id,
-						result_dir=result_dir,
-						enc_only=enc_only,
-						save=False)
+	wav_data = convert(trainer,
+				   	   seg_len,
+					   src_speaker_spec=spec, 
+					   tar_speaker=t_speaker,
+					   utt_id='',
+					   speaker2id=speaker2id,
+					   result_dir=result_dir,
+					   enc_only=enc_only,
+					   save=False)
 
 	write(os.path.join(result_dir, 'result.wav'), rate=hp.sr, data=wav_data)
 	sf.write(os.path.join(result_dir, 'result2.wav'), wav_data, hp.sr, 'PCM_24')
