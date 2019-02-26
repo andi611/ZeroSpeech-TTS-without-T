@@ -92,13 +92,12 @@ def convert(trainer,
 			try: spec_frag = src_speaker_spec[idx:idx+seg_len]
 			except: spec_frag = src_speaker_spec[idx:-1]
 			converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
-			print(np.shape(enc))
 			converted_results.append(converted_x)
 			converted_encodings.append(enc)
 
 		converted_results = np.concatenate(converted_results, axis=0)
 		converted_encodings = np.concatenate(converted_encodings, axis=0)
-		print(np.shape(converted_encodings))
+
 		wav_data = spectrogram2wav(converted_results)
 		if save:
 			wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
@@ -188,15 +187,15 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 		raise NotImplementedError('Please modify path manually!')
 	
 	_, spec = get_spectrograms(filename)
-	wave = convert(trainer,
-				   seg_len,
-				   src_speaker_spec=spec, 
-				   tar_speaker=t_speaker,
-				   utt_id='',
-				   speaker2id=speaker2id,
-				   result_dir=result_dir,
-				   enc_only=enc_only,
-				   save=False)
+	wave_data = convert(trainer,
+				   		seg_len,
+						src_speaker_spec=spec, 
+						tar_speaker=t_speaker,
+						utt_id='',
+						speaker2id=speaker2id,
+						result_dir=result_dir,
+						enc_only=enc_only,
+						save=False)
 
 	write(os.path.join(result_dir, 'result.wav'), rate=hp.sr, data=wav_data)
 	sf.write(os.path.join(result_dir, 'result2.wav'), wav_data, hp.sr, 'PCM_24')
