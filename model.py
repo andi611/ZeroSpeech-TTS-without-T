@@ -310,10 +310,11 @@ class CBHG(nn.Module):
 
 
 class Decoder(nn.Module):
-	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2):
+	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, one_hot=False):
 		super(Decoder, self).__init__()
 		self.ns = ns
-		self.conv1 = nn.Conv1d(c_in, 2*c_h, kernel_size=3)
+		self.one_hot = one_hot
+		self.conv1 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
 		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=3)
 		self.conv3 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
 		self.conv4 = nn.Conv1d(c_h, c_h, kernel_size=3)
@@ -333,6 +334,8 @@ class Decoder(nn.Module):
 		self.ins_norm4 = nn.InstanceNorm1d(c_h)
 		self.ins_norm5 = nn.InstanceNorm1d(c_h)
 		# embedding layer
+
+		if self.one_hot: self.input_emb = nn.Linear(c_in, c_h)
 		self.emb1 = nn.Embedding(c_a, c_h)
 		self.emb2 = nn.Embedding(c_a, c_h)
 		self.emb3 = nn.Embedding(c_a, c_h)
@@ -368,7 +371,7 @@ class Decoder(nn.Module):
 
 	def forward(self, x, c):
 		# conv layer
-		out = self.conv_block(x, [self.conv1, self.conv2], self.ins_norm1, self.emb1(c), res=True )
+		out = self.conv_block(linear(x, self.input_emb) if self.one_hot else x, [self.conv1, self.conv2], self.ins_norm1, self.emb1(c), res=True)
 		out = self.conv_block(out, [self.conv3, self.conv4], self.ins_norm2, self.emb2(c), res=True)
 		out = self.conv_block(out, [self.conv5, self.conv6], self.ins_norm3, self.emb3(c), res=True)
 		# dense layer
@@ -465,8 +468,8 @@ class Encoder(nn.Module):
 		out = torch.cat([out, out_rnn], dim=1)
 		out = linear(out, self.linear)
 		if self.one_hot:
-			out = gumbel_softmax(out)
+			out_act = gumbel_softmax(out)
 		else:
-			out = F.leaky_relu(out, negative_slope=self.ns)
-		return out
+			out_act = F.leaky_relu(out, negative_slope=self.ns)
+		return out_act, out
 

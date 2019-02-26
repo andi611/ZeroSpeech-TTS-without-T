@@ -52,7 +52,7 @@ class Trainer(object):
 
 		#---stage one---#
 		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, emb_size=emb_size, one_hot=self.one_hot))
-		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers))
+		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers, one_hot=self.one_hot))
 		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size, c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
 		#---stage one opts---#
@@ -61,7 +61,7 @@ class Trainer(object):
 		self.clf_opt = optim.Adam(self.SpeakerClassifier.parameters(), lr=self.hps.lr, betas=betas)
 		
 		#---stage two---#
-		self.Generator = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers))
+		self.Generator = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers, one_hot=self.one_hot))
 		self.PatchDiscriminator = cc(nn.DataParallel(PatchDiscriminator(ns=ns, n_class=hps.n_speakers \
 																		if not self.targeted_G else hps.n_target_speakers,
 																		seg_len=hps.seg_len)))
@@ -123,7 +123,7 @@ class Trainer(object):
 	def test_step(self, x, c, enc_only=False, verbose=True):
 		self.set_eval()
 		x = to_var(x).permute(0, 2, 1)
-		enc = self.Encoder(x)
+		enc, _ = self.Encoder(x)
 		x_tilde = self.Decoder(enc, c)
 		if not enc_only:
 			if verbose: print('Testing with Autoencoder + Generator, encoding: ', enc.data.cpu().numpy())
@@ -150,8 +150,8 @@ class Trainer(object):
 
 
 	def encode_step(self, x):
-		enc = self.Encoder(x)
-		return enc
+		enc_act, enc = self.Encoder(x)
+		return enc_act, enc
 
 
 	def decode_step(self, enc, c):
@@ -209,8 +209,8 @@ class Trainer(object):
 				c, x = self.permute_data(data)
 				
 				# encode
-				enc = self.encode_step(x)
-				x_tilde = self.decode_step(enc, c)
+				enc_act, enc = self.encode_step(x)
+				x_tilde = self.decode_step(enc_act, c)
 				loss_rec = torch.mean(torch.abs(x_tilde - x))
 				reset_grad([self.Encoder, self.Decoder])
 				loss_rec.backward()
@@ -239,7 +239,7 @@ class Trainer(object):
 				c, x = self.permute_data(data)
 				
 				# encode
-				enc = self.encode_step(x)
+				enc_act, enc = self.encode_step(x)
 				
 				# classify speaker
 				logits = self.clf_step(enc)
@@ -283,7 +283,7 @@ class Trainer(object):
 					c, x = self.permute_data(data)
 					
 					# encode
-					enc = self.encode_step(x)
+					enc_act, enc = self.encode_step(x)
 					
 					# classify speaker
 					logits = self.clf_step(enc)
@@ -314,10 +314,10 @@ class Trainer(object):
 				c, x = self.permute_data(data)
 				
 				# encode
-				enc = self.encode_step(x)
+				enc_act, enc = self.encode_step(x)
 				
 				# decode
-				x_tilde = self.decode_step(enc, c)
+				x_tilde = self.decode_step(enc_act, c)
 				loss_rec = torch.mean(torch.abs(x_tilde - x))
 				
 				# classify speaker
@@ -360,13 +360,13 @@ class Trainer(object):
 					c, x_t = self.permute_data(data_t)
 					
 					# encode
-					enc = self.encode_step(x_s)
+					enc_act, enc = self.encode_step(x_s)
 					
 					# sample c
 					c_prime = self.sample_c(x_t.size(0))
 					
 					# generator
-					x_tilde = self.gen_step(enc, c_prime)
+					x_tilde = self.gen_step(enc_act, c_prime)
 					
 					# discriminstor
 					w_dis, real_logits, gp = self.patch_step(x_t, x_tilde, is_dis=True)
@@ -403,13 +403,13 @@ class Trainer(object):
 				c, x_t = self.permute_data(data_t)
 
 				# encode
-				enc = self.encode_step(x_s)
+				enc_act, enc = self.encode_step(x_s)
 				
 				# sample c
 				c_prime = self.sample_c(x_t.size(0))
 				
 				# generator
-				x_tilde = self.gen_step(enc, c_prime)
+				x_tilde = self.gen_step(enc_act, c_prime)
 				
 				# discriminstor
 				loss_adv, fake_logits = self.patch_step(x_t, x_tilde, is_dis=False)

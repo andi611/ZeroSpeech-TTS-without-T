@@ -34,7 +34,7 @@ if __name__ == '__main__':
 	static_setting.add_argument('--remake', type=bool, default=bool(0), help='whether to remake dataset.hdf5')
 	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
 	static_setting.add_argument('--one_hot', type=bool, default=bool(1), help='Set the encoder to encode to symbolic discrete one-hot vectors')
-	static_setting.add_argument('--enc_only', type=bool, default=bool(0), help='whether to predict only with stage 1 audoencoder')
+	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
 	
@@ -98,12 +98,12 @@ if __name__ == '__main__':
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), model_all=False)
 
 		if args.train:
-			# trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
-			# trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
-			# trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
+			trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
+			trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
+			trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
 			
-			trainer.add_duo_loader(source_loader, target_loader)
-			trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
+			# trainer.add_duo_loader(source_loader, target_loader)
+			# trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
 
 	if args.test or args.cross_test or args.test_single:
 
