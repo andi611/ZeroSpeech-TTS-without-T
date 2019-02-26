@@ -423,7 +423,8 @@ class Encoder(nn.Module):
 		out = torch.cat([out, out_rnn], dim=1)
 		out = linear(out, self.linear)
 		if self.one_hot:
-			out_act = gumbel_softmax(out)
+			out_act = gumbel_softmax(out.permute(0, 2, 1))
+			out_act = out.permute(0, 1, 2).contiguous()
 		else:
 			out_act = F.leaky_relu(out, negative_slope=self.ns)
 		return out_act, out
