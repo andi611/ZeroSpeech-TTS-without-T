@@ -199,7 +199,6 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_24')
 	with open(os.path.join(result_dir, 'result.txt'), 'w') as file:
 		for enc in encodings:
-			print(np.shape(enc))
 			for element in enc:
 				file.write(str(int(element)) + ' ')
 			file.write('\n')

@@ -264,51 +264,6 @@ class SpeakerClassifier(nn.Module):
 		return out
 
 
-class CBHG(nn.Module):
-	def __init__(self, c_in=80, c_out=513):
-		super(CBHG, self).__init__()
-		self.conv1s = nn.ModuleList(
-				[nn.Conv1d(c_in, 128, kernel_size=k) for k in range(1, 9)]
-				)
-		self.bn1s = nn.ModuleList([nn.BatchNorm1d(128) for _ in range(1, 9)])
-		self.mp1 = nn.MaxPool1d(kernel_size=2, stride=1)
-		self.conv2 = nn.Conv1d(len(self.conv1s)*128, 256, kernel_size=3, padding=1)
-		self.bn2 = nn.BatchNorm1d(256)
-		self.conv3 = nn.Conv1d(256, 80, kernel_size=3, padding=1)
-		self.bn3 = nn.BatchNorm1d(80)
-		# highway network
-		self.linear1 = nn.Linear(80, 128)
-		self.layers = nn.ModuleList([nn.Linear(128, 128) for _ in range(4)])
-		self.gates = nn.ModuleList([nn.Linear(128, 128) for _ in range(4)])
-		self.RNN = nn.GRU(input_size=128, hidden_size=128, num_layers=1, bidirectional=True)
-		self.linear2 = nn.Linear(256, c_out) 
-		
-	def forward(self, x):
-		outs = []
-		for l in self.conv1s:
-			out = pad_layer(x, l)
-			out = F.relu(out)
-			outs.append(out)
-		bn_outs = []
-		for out, bn in zip(outs, self.bn1s):
-		   out = bn(out) 
-		   bn_outs.append(out)
-		out = torch.cat(bn_outs, dim=1)
-		out = pad_layer(out, self.mp1)
-		out = self.conv2(out)
-		out = F.relu(out)
-		out = self.bn2(out)
-		out = self.conv3(out)
-		out = self.bn3(out)
-		out = out + x
-		out = linear(out, self.linear1)
-		out = highway(out, self.layers, self.gates, F.relu)
-		out_rnn = RNN(out, self.RNN)
-		out = linear(out_rnn, self.linear2)
-		out = F.sogmoid(out)
-		return out
-
-
 class Decoder(nn.Module):
 	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, one_hot=False):
 		super(Decoder, self).__init__()
