@@ -63,6 +63,7 @@ def convert_x(x, c, trainer, enc_only, verbose=False):
 	tensor = torch.from_numpy(np.expand_dims(x, axis=0)).type(torch.FloatTensor)
 	converted, enc = trainer.test_step(tensor, c_var, enc_only=enc_only, verbose=verbose)
 	converted = converted.squeeze(axis=0).transpose((1, 0))
+	enc = enc.squeeze(axis=0).transpose((1, 0))
 	return converted, enc
 
 
@@ -97,7 +98,7 @@ def convert(trainer,
 
 		converted_results = np.concatenate(converted_results, axis=0)
 		converted_encodings = np.concatenate(converted_encodings, axis=0)
-		
+		print(np.shape(converted_encodings))
 		wav_data = spectrogram2wav(converted_results)
 		if save:
 			wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
