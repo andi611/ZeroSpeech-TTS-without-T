@@ -34,9 +34,9 @@ def preprocess(source_path,
 			   seg_len=128, 
 			   n_samples=200000,
 			   dset='train',
-			   resample=False):
+			   remake=True):
 	
-	if not resample:
+	if remake or not os.path.isfile(dataset_path):
 		with h5py.File(dataset_path, 'w') as h5py_file:
 			grps = [h5py_file.create_group('train'), h5py_file.create_group('test')]
 			print('[Processor] - making training dataset...')
