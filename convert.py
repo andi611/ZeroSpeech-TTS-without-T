@@ -86,23 +86,23 @@ def convert(trainer,
 	
 	if len(src_speaker_spec) > seg_len:
 		converted_results = []
-		converted_encodings = []
+		encodings = []
 		for idx in range(0, len(src_speaker_spec), seg_len):
 			try: spec_frag = src_speaker_spec[idx:idx+seg_len]
 			except: spec_frag = src_speaker_spec[idx:-1]
 			converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
 			converted_results.append(converted_x)
-			converted_encodings.append(enc)
+			encodings.append(enc)
 
 		converted_results = np.concatenate(converted_results, axis=0)
-		converted_encodings = np.concatenate(converted_encodings, axis=0)
+		encodings = np.concatenate(encodings, axis=0)
 
 		wav_data = spectrogram2wav(converted_results)
 		if save:
 			wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
 			sf.write(wav_path, wav_data, hp.sr, 'PCM_24')
 		else:
-			return wav_data
+			return wav_data, encodings
 	else:
 		print('[Tester] - Unable to process \"{}\" of speaker {}: '.format(utt_id, f_h5[f'{dset}/{src_speaker}']))
 
@@ -186,16 +186,18 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 		raise NotImplementedError('Please modify path manually!')
 	
 	_, spec = get_spectrograms(filename)
-	wav_data = convert(trainer,
-				   	   seg_len,
-					   src_speaker_spec=spec, 
-					   tar_speaker=t_speaker,
-					   utt_id='',
-					   speaker2id=speaker2id,
-					   result_dir=result_dir,
-					   enc_only=enc_only,
-					   save=False)
+	wav_data, encodings = convert(trainer,
+								  seg_len,
+								  src_speaker_spec=spec, 
+								  tar_speaker=t_speaker,
+								  utt_id='',
+								  speaker2id=speaker2id,
+								  result_dir=result_dir,
+								  enc_only=enc_only,
+								  save=False)
 
 	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_24')
+	with open(os.path.join(result_dir, 'result.txt'), 'w') as file:
+    	for enc in encodings: file.write(enc + '\n')
 	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, wav_data.shape))
 
