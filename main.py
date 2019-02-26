@@ -105,7 +105,7 @@ if __name__ == '__main__':
 			trainer.add_duo_loader(source_loader, target_loader)
 			trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
 
-	if args.test or args.test_single:
+	if args.test or args.cross_test or args.test_single:
 
 		os.makedirs(args.result_dir, exist_ok=True)
 		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
