@@ -196,6 +196,6 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 					   enc_only=enc_only,
 					   save=False)
 
-	sf.write(os.path.join(result_dir, 'result2.wav'), wav_data, hp.sr, 'PCM_24')
+	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_24')
 	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, wav_data.shape))
 
