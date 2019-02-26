@@ -17,7 +17,7 @@ from trainer import Trainer
 from preprocess import preprocess
 from convert import test, test_single, get_trainer
 from dataloader import Dataset, DataLoader
-from discrete import clustering, train_discrete_decoder
+from discrete import discrete_main
 
 
 if __name__ == '__main__':
@@ -117,13 +117,4 @@ if __name__ == '__main__':
 			test_single(trainer, args.speaker2id_path, args.result_dir, args.enc_only, args.s_speaker, args.t_speaker)
 
 
-	if args.discrete:
-		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
-		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
-		data_loader = DataLoader(dataset, hps.batch_size)
-		trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot)
-		data = [d.unsqueeze(0) for d in dataset]
-		data = [trainer.permute_data(d)[1] for d in data]
-		encoded = [trainer.encode_step(x) for x in data]
-		kmeans, look_up = clustering(encoded, n_clusters=args.n_clusters)
-		train_discrete_decoder(trainer, look_up, model_path)
+	discrete_main(args)

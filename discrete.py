@@ -7,6 +7,8 @@ from sklearn.cluster import KMeans
 from torch import cuda, distributions, nn, optim
 from torch.nn import functional as F
 
+from dataloader import DataLoader, Dataset
+from hps.hps import Hps
 from model import Decoder
 from trainer import Trainer
 from utils import grad_clip, reset_grad
@@ -121,3 +123,19 @@ def train_discrete_decoder(trainer, look_up, model_path, flag='train'):
         if (iteration + 1) % 1000 == 0:
             trainer.save_model(model_path, 'dc', iteration + 1)
     print()
+
+
+def discrete_main(args):
+    if not args.discrete:
+        return
+    HPS = Hps(args.hps_path)
+    hps = HPS.get_tuple()
+    model_path = path.join(args.ckpt_dir, args.load_test_model_name)
+    dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
+    data_loader = DataLoader(dataset, hps.batch_size)
+    trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot)
+    data = [d.unsqueeze(0) for d in dataset]
+    data = [trainer.permute_data(d)[1] for d in data]
+    encoded = [trainer.encode_step(x) for x in data]
+    kmeans, look_up = clustering(encoded, n_clusters=args.n_clusters)
+    train_discrete_decoder(trainer, look_up, model_path)
