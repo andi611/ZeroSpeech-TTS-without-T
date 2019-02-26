@@ -20,7 +20,6 @@ import numpy as np
 from tqdm import tqdm
 import soundfile as sf
 from scipy import signal
-from scipy.io.wavfile import write
 from torch.autograd import Variable
 from preprocess import get_spectrograms
 from trainer import Trainer
@@ -197,7 +196,6 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 					   enc_only=enc_only,
 					   save=False)
 
-	write(os.path.join(result_dir, 'result.wav'), rate=hp.sr, data=wav_data)
 	sf.write(os.path.join(result_dir, 'result2.wav'), wav_data, hp.sr, 'PCM_24')
-	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, results.shape))
+	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, wav_data.shape))
 
