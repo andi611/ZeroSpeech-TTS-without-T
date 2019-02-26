@@ -129,7 +129,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 		for feed in feeds:
 			convert(trainer,
 					seg_len,
-					src_speaker_spec=f_h5[f'test/{feed['s_id']}/{feed['utt_id']}/lin'][()], 
+					src_speaker_spec=f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()], 
 					tar_speaker=feed['t_id'],
 					utt_id=feed['utt_id'],
 					speaker2id=speaker2id,
