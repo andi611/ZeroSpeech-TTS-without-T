@@ -50,7 +50,7 @@ if __name__ == '__main__':
 	data_path.add_argument('--speaker2id_path', type=str, default='./data/speaker2id.json', help='records speaker and speaker id')
 
 	model_path = parser.add_argument_group('model_path')
-	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech.json', help='hyperparameter path')
+	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech_exp.json', help='hyperparameter path')
 	model_path.add_argument('--ckpt_dir', type=str, default='./ckpt', help='checkpoint directory for training storage')
 	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
 	model_path.add_argument('--sub_result_dir', type=str, default='./english/', help='sub result directory for generating zerospeech synthesis results')
