@@ -7,6 +7,7 @@ from sklearn.cluster import KMeans
 from torch import cuda, distributions, nn, optim
 from torch.nn import functional as F
 
+from convert import test
 from dataloader import DataLoader, Dataset
 from hps.hps import Hps
 from model import Decoder
@@ -26,45 +27,53 @@ class GumbelSoftmax:
         return F.softmax(x/self.temperature, dim=self.dim)
 
 
-class ClassEncoder:
-    def __init__(self, input_dim, n_classes, hidden_dim=100):
-        self.n_classes = n_classes
+class ClassEncoder(nn.Module):
+    def __init__(self, input_shape, n_classes, hidden_dim=100):
+        super().__init__()
+        self.input_shape = np.array(input_shape)
         self.linear_block = nn.ModuleList([
-            nn.Linear(in_features=input_dim, out_features=hidden_dim),
+            nn.Linear(in_features=np.prod(
+                input_shape[1:]), out_features=hidden_dim),
             nn.ReLU(),
             nn.Linear(in_features=hidden_dim, out_features=n_classes)
         ])
-        self.input_dim = input_dim
         self.gumbel = GumbelSoftmax()
 
     def forward(self, inputs):
-        inputs = inputs.view(-1, self.input_dim)
+        inputs = inputs.view(self.input_shape[0], -1)
         net = inputs
         for layer in self.linear_block:
             net = layer(net)
         return self.gumbel(net)
 
 
-# class LatticeGumbel:
-#     def __init__(self, n_lattices):
-#         self.n_lattices = n_lattices
-#         self.gumbel_softmax = GumbelSoftmax()
+class ClassDecoder(nn.Module):
+    def __init__(self, original_shape, n_classes, hidden_dim=100):
+        super().__init__()
+        self.original_shape = np.array(original_shape)
+        self.linear_block = nn.ModuleList([
+            nn.Linear(in_features=n_classes, out_features=hidden_dim),
+            nn.ReLU(),
+            nn.Linear(in_features=hidden_dim,
+                      out_features=np.prod(original_shape[1:]))
+        ])
 
-#     def __call__(self, inputs):
-#         return None
+    def forward(self, inputs):
+        net = inputs
+        for layer in self.linear_block:
+            net = layer(net)
+        return net.view(*self.original_shape)
 
-#     def process(self, inputs, dim=-1):
-#         normalized = self.normalize(inputs, dim=dim)
-#         lattice = torch.floor(normalized * self.n_lattices).float()
-#         lattice = torch
-#         gumbel = self.gumbel_softmax(lattice)
 
-#     @staticmethod
-#     def normalize(inputs, dim=-1):
-#         maximum = inputs.max(dim)[0]
-#         minimum = inputs.min(dim)[0]
-#         difference = maximum-minimum
-#         return (inputs-minimum)/difference
+class ToOneHot(nn.Module):
+    def __init__(self, input_shape, n_classes, hidden_dim=100):
+        super().__init__()
+        self.enc = ClassEncoder(input_shape, n_classes, hidden_dim)
+        self.dec = ClassDecoder(input_shape, n_classes, hidden_dim)
+
+    def forward(self, inputs):
+        encoded = self.enc(inputs)
+        return encoded, self.dec(encoded)
 
 
 def clustering(inputs, n_clusters):
@@ -86,13 +95,9 @@ def clustering(inputs, n_clusters):
     return k_means, LookUp(k_means, shapes=inputs.shape)
 
 
-def train_discrete_decoder(trainer, look_up, model_path, flag='train'):
+def finetune_discrete_decoder(trainer, look_up, model_path, flag='train'):
     # trainer is already trained
     hyper_params = trainer.hps
-
-    tDecoder = trainer.Decoder
-    dDecoder = Decoder(ns=tDecoder.ns, c_in=tDecoder.emb_size,
-                       c_h=tDecoder.emb_size, c_a=hyper_params.n_speakers)
 
     for iteration in range(hyper_params.enc_pretrain_iters):
         data = next(trainer.data_loader)
@@ -134,8 +139,11 @@ def discrete_main(args):
     dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
     data_loader = DataLoader(dataset, hps.batch_size)
     trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot)
+    trainer.load_model(
+        path.join(args.ckpt_dir, args.load_train_model_name), model_all=True)
     data = [d.unsqueeze(0) for d in dataset]
     data = [trainer.permute_data(d)[1] for d in data]
     encoded = [trainer.encode_step(x) for x in data]
     kmeans, look_up = clustering(encoded, n_clusters=args.n_clusters)
-    train_discrete_decoder(trainer, look_up, model_path)
+    finetune_discrete_decoder(trainer, look_up, model_path)
+    test(trainer, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, args.flag)
