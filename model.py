@@ -17,19 +17,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
-class GradReverse(torch.autograd.Function):
-	@staticmethod
-	#def forward(ctx, x, _lambda=0.0001):
-	def forward(ctx, x):
-		#ctx._lambda = _lambda
-		return x.view_as(x)
-
-	@staticmethod
-	def backward(ctx, grad_output):
-		return grad_output.neg()
-
-
-def pad_layer(inp, layer, is_2d=False):
+def pad_layer(inp, layer, seg_len, is_2d=False):
 	if type(layer.kernel_size) == tuple:
 		kernel_size = layer.kernel_size[0]
 	else:
@@ -47,7 +35,7 @@ def pad_layer(inp, layer, is_2d=False):
 	# padding
 	inp = F.pad(inp, 
 			pad=pad,
-			mode='constant')
+			mode='constant' if seg_len < 64 else 'reflect')
 	out = layer(inp)
 	return out
 
@@ -68,41 +56,6 @@ def upsample(x, scale_factor=2):
 	return x_up
 
 
-def GLU(inp, layer, res=True):
-	kernel_size = layer.kernel_size[0]
-	channels = layer.out_channels // 2
-	# padding
-	out = F.pad(inp.unsqueeze(dim=3), pad=(0, 0, kernel_size//2, kernel_size//2), mode='constant', value=0.)
-	out = out.squeeze(dim=3)
-	out = layer(out)
-	# gated
-	A = out[:, :channels, :]
-	B = F.sigmoid(out[:, channels:, :])
-	if res:
-		H = A * B + inp
-	else:
-		H = A * B
-	return H
-
-
-def highway(inp, layers, gates, act):
-	# permute
-	batch_size = inp.size(0)
-	seq_len = inp.size(2)
-	inp_permuted = inp.permute(0, 2, 1)
-	# merge dim
-	out_expand = inp_permuted.contiguous().view(batch_size*seq_len, inp_permuted.size(2))
-	for l, g in zip(layers, gates):
-		H = l(out_expand)
-		H = act(H)
-		T = g(out_expand)
-		T = F.sigmoid(T)
-		out_expand = H * T + out_expand * (1. - T)
-	out_permuted = out_expand.view(batch_size, seq_len, out_expand.size(1))
-	out = out_permuted.permute(0, 2, 1)
-	return out
-
-
 def RNN(inp, layer):
 	inp_permuted = inp.permute(2, 0, 1)
 	state_mul = (int(layer.bidirectional) + 1) * layer.num_layers
@@ -116,11 +69,11 @@ def RNN(inp, layer):
 def linear(inp, layer):
 	batch_size = inp.size(0)
 	hidden_dim = inp.size(1)
-	seq_len = inp.size(2)
+	seg_len = inp.size(2)
 	inp_permuted = inp.permute(0, 2, 1)
-	inp_expand = inp_permuted.contiguous().view(batch_size*seq_len, hidden_dim)
+	inp_expand = inp_permuted.contiguous().view(batch_size*seg_len, hidden_dim)
 	out_expand = layer(inp_expand)
-	out_permuted = out_expand.view(batch_size, seq_len, out_expand.size(1))
+	out_permuted = out_expand.view(batch_size, seg_len, out_expand.size(1))
 	out = out_permuted.permute(0, 2, 1)
 	return out
 
@@ -161,19 +114,20 @@ class PatchDiscriminator(nn.Module):
 	def __init__(self, n_class=33, ns=0.2, dp=0.1, seg_len=128):
 		super(PatchDiscriminator, self).__init__()
 		self.ns = ns
+		self.seg_len = seg_len
 		self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=2)
 		self.conv2 = nn.Conv2d(64, 128, kernel_size=5, stride=2)
 		self.conv3 = nn.Conv2d(128, 256, kernel_size=5, stride=2)
 		self.conv4 = nn.Conv2d(256, 512, kernel_size=5, stride=2)
 		self.conv5 = nn.Conv2d(512, 512, kernel_size=5, stride=2)
 		self.conv6 = nn.Conv2d(512, 32, kernel_size=1)
-		if seg_len == 128:
+		if self.seg_len == 128:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 4))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 4))
-		elif seg_len == 64:
+		elif self.eg_len == 64:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 2))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 2))
-		elif seg_len == 8:
+		elif self.seg_len == 8:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 1))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 1))
 		else:
@@ -192,7 +146,7 @@ class PatchDiscriminator(nn.Module):
 		self.ins_norm6 = nn.InstanceNorm2d(self.conv6.out_channels)
 
 	def conv_block(self, x, conv_layer, after_layers):
-		out = pad_layer(x, conv_layer, is_2d=True)
+		out = pad_layer(x, conv_layer, self.seg_len, is_2d=True)
 		out = F.leaky_relu(out, negative_slope=self.ns)
 		for layer in after_layers:
 			out = layer(out)
@@ -222,7 +176,9 @@ class PatchDiscriminator(nn.Module):
 class SpeakerClassifier(nn.Module):
 	def __init__(self, c_in=512, c_h=512, n_class=8, dp=0.1, ns=0.01, seg_len=128):
 		super(SpeakerClassifier, self).__init__()
-		self.dp, self.ns = dp, ns
+		self.dp = dp
+		self.ns = ns
+		self.seg_len = seg_len
 		self.conv1 = nn.Conv1d(c_in, c_h, kernel_size=5)
 		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=5)
 		self.conv3 = nn.Conv1d(c_h, c_h, kernel_size=5)
@@ -231,11 +187,11 @@ class SpeakerClassifier(nn.Module):
 		self.conv6 = nn.Conv1d(c_h, c_h, kernel_size=5)
 		self.conv7 = nn.Conv1d(c_h, c_h//2, kernel_size=3)
 		self.conv8 = nn.Conv1d(c_h//2, c_h//4, kernel_size=3)
-		if seg_len == 128:
+		if self.seg_len == 128:
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=16)
-		elif seg_len == 64:
+		elif self.seg_len == 64:
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=8)
-		elif seg_len == 8:
+		elif self.seg_len == 8:
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=1)
 		else:
 			raise NotImplementedError('Segement length {} is not supported!'.format(seg_len))
@@ -251,7 +207,7 @@ class SpeakerClassifier(nn.Module):
 	def conv_block(self, x, conv_layers, after_layers, res=True):
 		out = x
 		for layer in conv_layers:
-			out = pad_layer(out, layer)
+			out = pad_layer(out, layer, self.seg_len)
 			out = F.leaky_relu(out, negative_slope=self.ns)
 		for layer in after_layers:
 			out = layer(out)
@@ -270,9 +226,10 @@ class SpeakerClassifier(nn.Module):
 
 
 class Decoder(nn.Module):
-	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, one_hot=False):
+	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64, one_hot=False):
 		super(Decoder, self).__init__()
 		self.ns = ns
+		self.seg_len = seg_len
 		self.one_hot = one_hot
 		self.conv1 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
 		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=3)
@@ -305,12 +262,12 @@ class Decoder(nn.Module):
 	def conv_block(self, x, conv_layers, norm_layer, emb, res=True):
 		# first layer
 		x_add = x + emb.view(emb.size(0), emb.size(1), 1)
-		out = pad_layer(x_add, conv_layers[0])
+		out = pad_layer(x_add, conv_layers[0], self.seg_len)
 		out = F.leaky_relu(out, negative_slope=self.ns)
 		# upsample by pixelshuffle
 		out = pixel_shuffle_1d(out, upscale_factor=2)
 		out = out + emb.view(emb.size(0), emb.size(1), 1)
-		out = pad_layer(out, conv_layers[1])
+		out = pad_layer(out, conv_layers[1], self.seg_len)
 		out = F.leaky_relu(out, negative_slope=self.ns)
 		out = norm_layer(out)
 		if res:
@@ -351,9 +308,10 @@ class Decoder(nn.Module):
 
 
 class Encoder(nn.Module):
-	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, one_hot=False):
+	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, seg_len=64, one_hot=False):
 		super(Encoder, self).__init__()
 		self.ns = ns
+		self.seg_len = seg_len
 		self.one_hot = one_hot
 		self.conv1s = nn.ModuleList(
 				[nn.Conv1d(c_in, c_h1, kernel_size=k) for k in range(1, 8)]
@@ -386,15 +344,15 @@ class Encoder(nn.Module):
 		self.drop5 = nn.Dropout(p=dp)
 		self.drop6 = nn.Dropout(p=dp)
 
-	def conv_block(self, x, conv_layers, norm_layers, res=True):
+	def conv_block(self, x, conv_layers, norm_layers, seg_len, res=True):
 		out = x
 		for layer in conv_layers:
-			out = pad_layer(out, layer)
+			out = pad_layer(out, layer, self.seg_len)
 			out = F.leaky_relu(out, negative_slope=self.ns)
 		for layer in norm_layers:
 			out = layer(out)
 		if res:
-			x_pad = F.pad(x, pad=(0, x.size(2) % 2), mode='constant')
+			x_pad = F.pad(x, pad=(0, x.size(2) % 2), mode='constant' if seg_len < 64 else 'reflect')
 			x_down = F.avg_pool1d(x_pad, kernel_size=2)
 			out = x_down + out 
 		return out
@@ -413,14 +371,14 @@ class Encoder(nn.Module):
 	def forward(self, x):
 		outs = []
 		for l in self.conv1s:
-			out = pad_layer(x, l)
+			out = pad_layer(x, l, self.seg_len)
 			outs.append(out)
 		out = torch.cat(outs + [x], dim=1)
 		out = F.leaky_relu(out, negative_slope=self.ns)
-		out = self.conv_block(out, [self.conv2], [self.ins_norm1, self.drop1], res=False)
-		out = self.conv_block(out, [self.conv3, self.conv4], [self.ins_norm2, self.drop2])
-		out = self.conv_block(out, [self.conv5, self.conv6], [self.ins_norm3, self.drop3])
-		out = self.conv_block(out, [self.conv7, self.conv8], [self.ins_norm4, self.drop4])
+		out = self.conv_block(out, [self.conv2], [self.ins_norm1, self.drop1], self.seg_len, res=False)
+		out = self.conv_block(out, [self.conv3, self.conv4], [self.ins_norm2, self.drop2], self.seg_len)
+		out = self.conv_block(out, [self.conv5, self.conv6], [self.ins_norm3, self.drop3], self.seg_len)
+		out = self.conv_block(out, [self.conv7, self.conv8], [self.ins_norm4, self.drop4], self.seg_len)
 		# dense layer
 		out = self.dense_block(out, [self.dense1, self.dense2], [self.ins_norm5, self.drop5], res=True)
 		out = self.dense_block(out, [self.dense3, self.dense4], [self.ins_norm6, self.drop6], res=True)
