@@ -114,9 +114,9 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 
 	feeds = []
 	with open(synthesis_list, 'r') as f:
-		file = f.read()
+		file = f.readlines()
 		for line in file:
-			line = line.split()
+			line = line.split('\n')[0].split(' ')
 			feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
 						  'utt_id' : line[0].split('/')[1].split('_')[1], 
 						  't_id' : line[1], })

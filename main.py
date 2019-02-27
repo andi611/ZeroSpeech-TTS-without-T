@@ -42,7 +42,7 @@ if __name__ == '__main__':
 	data_path.add_argument('--source_path', type=str, default='./data/english/train/unit/', help='the zerospeech train unit dataset')
 	data_path.add_argument('--target_path', type=str, default='./data/english/train/voice/', help='the zerospeech train voice dataset')
 	data_path.add_argument('--test_path', type=str, default='./data/english/test/', help='the zerospeech test dataset')
-	data_path.add_argument('--synthesis_list', type=str, default='./data/english/synthesis.txt/', help='the zerospeech testing list')
+	data_path.add_argument('--synthesis_list', type=str, default='./data/english/synthesis.txt', help='the zerospeech testing list')
 	data_path.add_argument('--dataset_path', type=str, default='./data/dataset.hdf5', help='the processed train dataset (unit + voice)')
 	data_path.add_argument('--index_path', type=str, default='./data/index.json', help='sample training segments from the train dataset, for stage 1 training')
 	data_path.add_argument('--index_source_path', type=str, default='./data/index_source.json', help='sample training source segments from the train dataset, for stage 2 training')

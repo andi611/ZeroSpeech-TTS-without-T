@@ -47,7 +47,7 @@ def pad_layer(inp, layer, is_2d=False):
 	# padding
 	inp = F.pad(inp, 
 			pad=pad,
-			mode='reflect')
+			mode='constant')
 	out = layer(inp)
 	return out
 
@@ -173,6 +173,9 @@ class PatchDiscriminator(nn.Module):
 		elif seg_len == 64:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 2))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 2))
+		elif seg_len == 8:
+			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 1))
+			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 1))
 		else:
 			raise NotImplementedError('Segement length {} is not supported!'.format(seg_len))
 		self.drop1 = nn.Dropout2d(p=dp)
@@ -232,6 +235,8 @@ class SpeakerClassifier(nn.Module):
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=16)
 		elif seg_len == 64:
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=8)
+		elif seg_len == 8:
+			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=1)
 		else:
 			raise NotImplementedError('Segement length {} is not supported!'.format(seg_len))
 		self.drop1 = nn.Dropout(p=dp)
@@ -389,7 +394,7 @@ class Encoder(nn.Module):
 		for layer in norm_layers:
 			out = layer(out)
 		if res:
-			x_pad = F.pad(x, pad=(0, x.size(2) % 2), mode='reflect')
+			x_pad = F.pad(x, pad=(0, x.size(2) % 2), mode='constant')
 			x_down = F.avg_pool1d(x_pad, kernel_size=2)
 			out = x_down + out 
 		return out
