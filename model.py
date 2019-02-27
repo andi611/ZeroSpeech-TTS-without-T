@@ -124,7 +124,7 @@ class PatchDiscriminator(nn.Module):
 		if self.seg_len == 128:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 4))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 4))
-		elif self.eg_len == 64:
+		elif self.seg_len == 64:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 2))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 2))
 		elif self.seg_len == 8:
