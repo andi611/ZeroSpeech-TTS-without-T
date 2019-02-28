@@ -1,13 +1,17 @@
+import json
+import os
 from argparse import ArgumentParser
 from os import path
 
+import h5py
 import numpy as np
 import torch
 from sklearn.cluster import KMeans
 from torch import cuda, distributions, nn, optim
 from torch.nn import functional as F
+from tqdm import tqdm
 
-from convert import test
+from convert import convert_all_sp, test
 from dataloader import DataLoader, Dataset
 from hps.hps import Hps
 from model import Decoder
@@ -130,6 +134,41 @@ def finetune_discrete_decoder(trainer, look_up, model_path, flag='train'):
     print()
 
 
+def discrete_test(trainer, data_path, speaker2id_path, result_dir, enc_only, flag):
+
+    f_h5 = h5py.File(data_path, 'r')
+
+    print('[Tester] - Testing on the {}ing set...'.format(flag))
+    if flag == 'test':
+        source_speakers = sorted(list(f_h5['test'].keys()))
+    elif flag == 'train':
+        source_speakers = [s for s in sorted(
+            list(f_h5['train'].keys())) if s[0] == 'S']
+    target_speakers = [s for s in sorted(
+        list(f_h5['train'].keys())) if s[0] == 'V']
+    print('[Tester] - Source speakers: %i, Target speakers: %i' %
+          (len(source_speakers), len(target_speakers)))
+
+    with open(speaker2id_path, 'r') as f_json:
+        speaker2id = json.load(f_json)
+
+    print('[Tester] - Converting all testing utterances from source speakers to target speakers, this may take a while...')
+    for speaker_S in tqdm(source_speakers):
+        for speaker_T in target_speakers:
+            assert speaker_S != speaker_T
+            dir_path = os.path.join(result_dir, f'p{speaker_S}_p{speaker_T}')
+            os.makedirs(dir_path, exist_ok=True)
+
+            convert_all_sp(trainer,
+                           data_path,
+                           speaker_S,
+                           speaker_T,
+                           enc_only=enc_only,
+                           dset=flag,
+                           speaker2id=speaker2id,
+                           result_dir=dir_path)
+
+
 def discrete_main(args):
     if not args.discrete:
         return
@@ -145,5 +184,8 @@ def discrete_main(args):
     data = [trainer.permute_data(d)[1] for d in data]
     encoded = [trainer.encode_step(x) for x in data]
     kmeans, look_up = clustering(encoded, n_clusters=args.n_clusters)
+    test(trainer, args.dataset_path, args.speaker2id_path,
+         args.result_dir, args.enc_only, args.flag)
     finetune_discrete_decoder(trainer, look_up, model_path)
-    test(trainer, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, args.flag)
+    discrete_test(trainer, args.dataset_path, args.speaker2id_path,
+                  'discrete_'+args.result_dir, args.enc_only, args.flag)

@@ -5,7 +5,6 @@ RUN apt -y update && apt -y upgrade && apt -y install python3-pip python3-dev gi
 ENV CODE_DIR /root/code
 
 COPY . $CODE_DIR/ZeroSpeech
-COPY ~/english $CODE_DIR/ZeroSpeech
 WORKDIR $CODE_DIR/ZeroSpeech
 
 # Clean up pycache and pyc files
