@@ -393,12 +393,10 @@ class Encoder(nn.Module):
 			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size^2)
 			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, self.emb_size) # shape: (batch_size, t_step, emb_size, emb_size)
 			print(out_proj.size())
-			out_act = gumbel_softmax(out_proj).sum(-1).view(out_proj.size(0), out_proj.size(1), -1)
-			print(out_proj.size())
-			print(out_proj.sum())
+			out_act = gumbel_softmax(out_proj).sum(2).view(out_proj.size(0), out_proj.size(1), -1)
+			print(out_act.size())
 			out_act = torch.clamp(out_act, min=0, max=1) # shape: (batch_size, t_step, emb_size)
-			print(out_proj.sum())
-			print(out_proj.size())
+			print(out_act.size())
 			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
 		
 		elif self.one_hot:
