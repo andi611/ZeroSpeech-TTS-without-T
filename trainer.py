@@ -54,7 +54,8 @@ class Trainer(object):
 		#---stage one---#
 		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, emb_size=emb_size, seg_len=hps.seg_len, one_hot=self.one_hot, binary_output=self.binary_output))
 		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers, seg_len=hps.seg_len, inp_emb=self.one_hot))
-		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size, c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
+		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size if not self.binary_output else emb_size * emb_size, \
+													  c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
 		#---stage one opts---#
 		params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())

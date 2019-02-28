@@ -387,20 +387,22 @@ class Encoder(nn.Module):
 		out = self.dense_block(out, [self.dense3, self.dense4], [self.ins_norm6, self.drop6], res=True)
 		out_rnn = RNN(out, self.RNN)
 		out = torch.cat([out, out_rnn], dim=1)
+		
 		if self.binary_output:
 			out = linear(out, self.project_linear)
-			out = out.permute(0, 2, 1)
-			out = out.view(out.size(0), out.size(1), self.emb_size, self.emb_size)
-			out_act = torch.clamp(gumbel_softmax(out).sum(-1).view(out.size(0), out.size(1), -1), min=0, max=1)
-			out_act = out_act.permute(0, 2, 1).contiguous()
-			print(out_act.data.cpu().numpy())
-			print(out_act.size())
+			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size^2)
+			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, self.emb_size) # shape: (batch_size, t_step, emb_size, emb_size)
+			out_act = torch.clamp(gumbel_softmax(out_proj).sum(-1).view(out_proj.size(0), out_proj.size(1), -1), min=0, max=1) # shape: (batch_size, t_step, emb_size)
+			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
+		
 		elif self.one_hot:
 			out = linear(out, self.linear)
 			out_act = gumbel_softmax(out.permute(0, 2, 1))
 			out_act = out_act.permute(0, 2, 1).contiguous()
+		
 		else:
 			out = linear(out, self.linear)
 			out_act = F.leaky_relu(out, negative_slope=self.ns)
+		
 		return out_act, out
 
