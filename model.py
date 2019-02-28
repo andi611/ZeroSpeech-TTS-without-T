@@ -391,7 +391,7 @@ class Encoder(nn.Module):
 			out = linear(out, self.project_linear)
 			out = out.permute(0, 2, 1)
 			out = out.view(out.size(0), out.size(1), self.emb_size, self.emb_size)
-			out_act = gumbel_softmax(out).sum(-1).view(out.size(0), out.size(1), -1)
+			out_act = torch.clamp(gumbel_softmax(out).sum(-1).view(out.size(0), out.size(1), -1), min=0, max=1)
 			out_act = out_act.permute(0, 2, 1).contiguous()
 			print(out_act.data.cpu().numpy())
 			print(out_act.size())
