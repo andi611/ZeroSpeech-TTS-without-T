@@ -331,7 +331,7 @@ class Encoder(nn.Module):
 		self.dense4 = nn.Linear(c_h2, c_h2)
 		self.RNN = nn.GRU(input_size=c_h2, hidden_size=c_h3, num_layers=1, bidirectional=True)
 		self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size)
-		if self.binary_output: self.project_linear = nn.Linear(c_h2 + 2*c_h3, emb_size * emb_size)
+		if self.binary_output: self.project_linear = nn.Linear(c_h2 + 2*c_h3, emb_size * emb_size // 4)
 		# normalization layer
 		self.ins_norm1 = nn.InstanceNorm1d(c_h2)
 		self.ins_norm2 = nn.InstanceNorm1d(c_h2)
@@ -391,7 +391,7 @@ class Encoder(nn.Module):
 		if self.binary_output:
 			out = linear(out, self.project_linear)
 			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size^2)
-			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, self.emb_size) # shape: (batch_size, t_step, emb_size, emb_size)
+			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, self.emb_size // 4) # shape: (batch_size, t_step, emb_size, emb_size)
 			out_act = torch.clamp(gumbel_softmax(out_proj).sum(-1).view(out_proj.size(0), out_proj.size(1), -1), min=0, max=1) # shape: (batch_size, t_step, emb_size)
 			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
 		
