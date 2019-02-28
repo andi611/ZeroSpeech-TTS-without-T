@@ -226,11 +226,11 @@ class SpeakerClassifier(nn.Module):
 
 
 class Decoder(nn.Module):
-	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64, one_hot=False):
+	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64, inp_emb=False):
 		super(Decoder, self).__init__()
 		self.ns = ns
 		self.seg_len = seg_len
-		self.one_hot = one_hot
+		self.inp_emb = inp_emb
 		self.conv1 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
 		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=3)
 		self.conv3 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
@@ -252,7 +252,7 @@ class Decoder(nn.Module):
 		self.ins_norm5 = nn.InstanceNorm1d(c_h)
 		# embedding layer
 
-		if self.one_hot: self.input_emb = nn.Linear(c_in, c_h)
+		if self.inp_emb: self.input_emb = nn.Linear(c_in, c_h)
 		self.emb1 = nn.Embedding(c_a, c_h)
 		self.emb2 = nn.Embedding(c_a, c_h)
 		self.emb3 = nn.Embedding(c_a, c_h)
@@ -288,7 +288,7 @@ class Decoder(nn.Module):
 
 	def forward(self, x, c):
 		# conv layer
-		out = self.conv_block(linear(x, self.input_emb) if self.one_hot else x, [self.conv1, self.conv2], self.ins_norm1, self.emb1(c), res=True)
+		out = self.conv_block(linear(x, self.input_emb) if self.inp_emb else x, [self.conv1, self.conv2], self.ins_norm1, self.emb1(c), res=True)
 		out = self.conv_block(out, [self.conv3, self.conv4], self.ins_norm2, self.emb2(c), res=True)
 		out = self.conv_block(out, [self.conv5, self.conv6], self.ins_norm3, self.emb3(c), res=True)
 		# dense layer
@@ -308,11 +308,13 @@ class Decoder(nn.Module):
 
 
 class Encoder(nn.Module):
-	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, seg_len=64, one_hot=False):
+	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, seg_len=64, one_hot=False, binary_output=False):
 		super(Encoder, self).__init__()
 		self.ns = ns
+		self.emb_size = emb_size
 		self.seg_len = seg_len
 		self.one_hot = one_hot
+		self.binary_output = binary_output
 		self.conv1s = nn.ModuleList(
 				[nn.Conv1d(c_in, c_h1, kernel_size=k) for k in range(1, 8)]
 			)
@@ -329,6 +331,7 @@ class Encoder(nn.Module):
 		self.dense4 = nn.Linear(c_h2, c_h2)
 		self.RNN = nn.GRU(input_size=c_h2, hidden_size=c_h3, num_layers=1, bidirectional=True)
 		self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size)
+		if self.binary_output: self.project_linear = nn.Linear(c_h2 + 2*c_h3, emb_size * emb_size)
 		# normalization layer
 		self.ins_norm1 = nn.InstanceNorm1d(c_h2)
 		self.ins_norm2 = nn.InstanceNorm1d(c_h2)
@@ -384,11 +387,20 @@ class Encoder(nn.Module):
 		out = self.dense_block(out, [self.dense3, self.dense4], [self.ins_norm6, self.drop6], res=True)
 		out_rnn = RNN(out, self.RNN)
 		out = torch.cat([out, out_rnn], dim=1)
-		out = linear(out, self.linear)
-		if self.one_hot:
+		if self.binary_output:
+			out = linear(out, self.project_linear)
+			out = out.permute(0, 2, 1)
+			out = out.view(out.size(0), out.size(1), self.emb_size, self.emb_size)
+			out_act = gumbel_softmax(out).sum(-1).view(out.size(0), out.size(1), -1)
+			out_act = out_act.permute(0, 2, 1).contiguous()
+			print(out_act.data.cpu().numpy())
+			print(out_act.size())
+		elif self.one_hot:
+			out = linear(out, self.linear)
 			out_act = gumbel_softmax(out.permute(0, 2, 1))
 			out_act = out_act.permute(0, 2, 1).contiguous()
 		else:
+			out = linear(out, self.linear)
 			out_act = F.leaky_relu(out, negative_slope=self.ns)
 		return out_act, out
 

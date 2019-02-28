@@ -33,7 +33,8 @@ if __name__ == '__main__':
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
 	static_setting.add_argument('--remake', type=bool, default=bool(0), help='whether to remake dataset.hdf5')
 	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
-	static_setting.add_argument('--one_hot', type=bool, default=bool(1), help='Set the encoder to encode to symbolic discrete one-hot vectors')
+	static_setting.add_argument('--one_hot', type=bool, default=bool(0), help='Set the encoder to encode to symbolic discrete one-hot vectors')
+	static_setting.add_argument('--binary_output', type=bool, default=bool(1), help='Set the encoder to produce binary 1/0 output vectors')
 	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
@@ -61,6 +62,8 @@ if __name__ == '__main__':
 
 	HPS = Hps(args.hps_path)
 	hps = HPS.get_tuple()
+	if args.one_hot and args.binary_output:
+		raise RuntimeWarning('Care that both --one_hot and --binary_output are set to True, the model will run with default --binary_output!')
 
 	if args.preprocess:	
 		
@@ -94,7 +97,7 @@ if __name__ == '__main__':
 		model_path = os.path.join(args.ckpt_dir, args.model_name)
 
 		#---initialize trainer---#
-		trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot)
+		trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot, args.binary_output)
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), model_all=False)
 
 		if args.train:
@@ -109,7 +112,7 @@ if __name__ == '__main__':
 
 		os.makedirs(args.result_dir, exist_ok=True)
 		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
-		trainer = get_trainer(args.hps_path, model_path, args.targeted_G, args.one_hot)
+		trainer = get_trainer(args.hps_path, model_path, args.targeted_G, args.one_hot, args.binary_output)
 
 		if args.test:
 			os.makedirs(os.path.join(args.result_dir, args.sub_result_dir), exist_ok=True)
