@@ -177,7 +177,8 @@ def discrete_main(args):
     model_path = path.join(args.ckpt_dir, args.load_test_model_name)
     dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
     data_loader = DataLoader(dataset, hps.batch_size)
-    trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot)
+    trainer = Trainer(hps, data_loader, args.targeted_G,
+                      args.one_hot, binary_output=False, binary_ver=False)
     trainer.load_model(
         path.join(args.ckpt_dir, args.load_train_model_name), model_all=True)
     data = [d.unsqueeze(0) for d in dataset]
