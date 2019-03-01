@@ -1,6 +1,6 @@
-FROM python:3.6
+FROM nvidia/cuda:latest
 
-RUN apt -y update && apt -y upgrade && apt -y install python3-pip python3-dev git wget
+RUN apt -y update && apt -y upgrade && apt -y install python3-pip python3-dev git wget libsndfile1
 
 ENV CODE_DIR /root/code
 
@@ -13,3 +13,4 @@ RUN rm -rf __pycache__ && \
     python3 -m pip install --upgrade setuptools && \
     python3 -m pip install numpy scipy torch torchvision librosa soundfile h5py tqdm tensorboardX
 
+CMD ["python3", "main.py", "--preprocess", "--resample", "''"]
