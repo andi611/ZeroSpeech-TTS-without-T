@@ -19,9 +19,10 @@ import torch.nn.functional as F
 from torch import nn, optim
 from torch.autograd import Variable
 
-from model import PatchDiscriminator, SpeakerClassifier
+from model import PatchDiscriminator
 from parallages import VariationalDecoder as Decoder
 from parallages import VariationalEncoder as Encoder
+from parallages import VariationalSpeakerClassifier as SpeakerClassifier
 from utils import (Logger, calculate_gradients_penalty, cc, grad_clip,
                    reset_grad, to_var)
 

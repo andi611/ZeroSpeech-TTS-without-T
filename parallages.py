@@ -2,8 +2,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from model import (RNN, append_emb, gumbel_softmax, linear,
-                   pad_layer, pixel_shuffle_1d, upsample)
+from model import (RNN, append_emb, gumbel_softmax, linear, pad_layer,
+                   pixel_shuffle_1d, upsample)
 
 
 class VariationalDecoder(nn.Module):
@@ -190,3 +190,59 @@ class VariationalEncoder(nn.Module):
         else:
             out = F.leaky_relu(out, negative_slope=self.ns)
         return out, mean, log_var
+
+
+class VariationalSpeakerClassifier(nn.Module):
+    def __init__(self, c_in=512, c_h=512, n_class=8, dp=0.1, ns=0.01, seg_len=128):
+        super(SpeakerClassifier, self).__init__()
+        self.dp, self.ns = dp, ns
+        self.conv1 = nn.Conv1d(c_in, c_h, kernel_size=5)
+        self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=5)
+        self.conv3 = nn.Conv1d(c_h, c_h, kernel_size=5)
+        self.conv4 = nn.Conv1d(c_h, c_h, kernel_size=5)
+        self.conv5 = nn.Conv1d(c_h, c_h, kernel_size=5)
+        self.conv6 = nn.Conv1d(c_h, c_h, kernel_size=5)
+        self.conv7 = nn.Conv1d(c_h, c_h//2, kernel_size=3)
+        self.conv8 = nn.Conv1d(c_h//2, c_h//4, kernel_size=3)
+        if seg_len == 128:
+            self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=16)
+        elif seg_len == 64:
+            self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=8)
+        else:
+            raise NotImplementedError(
+                'Segement length {} is not supported!'.format(seg_len))
+        self.drop1 = nn.Dropout(p=dp)
+        self.drop2 = nn.Dropout(p=dp)
+        self.drop3 = nn.Dropout(p=dp)
+        self.drop4 = nn.Dropout(p=dp)
+        self.ins_norm1 = nn.InstanceNorm1d(c_h)
+        self.ins_norm2 = nn.InstanceNorm1d(c_h)
+        self.ins_norm3 = nn.InstanceNorm1d(c_h)
+        self.ins_norm4 = nn.InstanceNorm1d(c_h//4)
+
+    def conv_block(self, x, conv_layers, after_layers, res=True):
+        out = x
+        for layer in conv_layers:
+            out = pad_layer(out, layer)
+            out = F.leaky_relu(out, negative_slope=self.ns)
+        for layer in after_layers:
+            out = layer(out)
+        if res:
+            out = out + x
+        return out
+
+    def forward(self, x):
+        x, z, log_var = x
+        x = x*(torch.exp(.5*log_var)) + z
+
+        out = self.conv_block(x, [self.conv1, self.conv2], [
+                              self.ins_norm1, self.drop1], res=False)
+        out = self.conv_block(out, [self.conv3, self.conv4], [
+                              self.ins_norm2, self.drop2], res=True)
+        out = self.conv_block(out, [self.conv5, self.conv6], [
+                              self.ins_norm3, self.drop3], res=True)
+        out = self.conv_block(out, [self.conv7, self.conv8], [
+                              self.ins_norm4, self.drop4], res=False)
+        out = self.conv9(out)
+        out = out.view(out.size()[0], -1)
+        return out
