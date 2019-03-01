@@ -95,10 +95,10 @@ def convert_x(x, c, trainer, enc_only):
 	return converted
 
 
-def get_trainer(hps_path, model_path, targeted_G, one_hot):
+def get_trainer(hps_path, model_path, targeted_G, one_hot, binary_output, binary_ver):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
-	trainer = Trainer(hps, None, targeted_G, one_hot)
+	trainer = Trainer(hps, None, targeted_G, one_hot, binary_output, binary_ver)
 	trainer.load_model(model_path, model_all=False)
 	return trainer
 

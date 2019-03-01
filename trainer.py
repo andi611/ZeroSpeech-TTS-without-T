@@ -27,7 +27,7 @@ from utils import calculate_gradients_penalty
 
 
 class Trainer(object):
-	def __init__(self, hps, data_loader, targeted_G, one_hot, log_dir='./log/'):
+	def __init__(self, hps, data_loader, targeted_G, one_hot, binary_output, binary_ver, log_dir='./log/'):
 		self.hps = hps
 		self.data_loader = data_loader
 		self.model_kept = []
@@ -35,6 +35,8 @@ class Trainer(object):
 		self.logger = Logger(log_dir)
 		self.targeted_G = targeted_G
 		self.one_hot = one_hot
+		self.binary_output = binary_output
+		self.binary_ver = binary_ver
 		if not self.targeted_G: 
 			self.sample_weights = torch.ones(hps.n_speakers)
 		else:
@@ -51,9 +53,13 @@ class Trainer(object):
 		betas = (0.5, 0.9)
 
 		#---stage one---#
-		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, emb_size=emb_size, one_hot=self.one_hot))
-		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers))
-		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
+		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, emb_size=emb_size, \
+								  seg_len=hps.seg_len, one_hot=self.one_hot, \
+								  binary_output=self.binary_output, binary_ver=self.binary_ver))
+		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers, \
+								  seg_len=hps.seg_len, inp_emb=self.one_hot or self.binary_output))
+		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size if not self.binary_output else emb_size * emb_size, \
+													  c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
 		#---stage one opts---#
 		params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())
