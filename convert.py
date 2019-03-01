@@ -66,10 +66,10 @@ def convert_x(x, c, trainer, enc_only, verbose=False):
 	return converted, enc
 
 
-def get_trainer(hps_path, model_path, targeted_G, one_hot, binary_output, binary_ver):
+def get_trainer(hps_path, model_path, targeted_G, enc_mode):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
-	trainer = Trainer(hps, None, targeted_G, one_hot, binary_output, binary_ver)
+	trainer = Trainer(hps, None, targeted_G, enc_mode)
 	trainer.load_model(model_path, model_all=False)
 	return trainer
 

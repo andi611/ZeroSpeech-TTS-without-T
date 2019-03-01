@@ -27,16 +27,14 @@ from utils import calculate_gradients_penalty
 
 
 class Trainer(object):
-	def __init__(self, hps, data_loader, targeted_G, one_hot, binary_output, binary_ver, log_dir='./log/'):
+	def __init__(self, hps, data_loader, targeted_G, enc_mode, log_dir='./log/'):
 		self.hps = hps
 		self.data_loader = data_loader
 		self.model_kept = []
 		self.max_keep = hps.max_to_keep
 		self.logger = Logger(log_dir)
 		self.targeted_G = targeted_G
-		self.one_hot = one_hot
-		self.binary_output = binary_output
-		self.binary_ver = binary_ver
+		self.enc_mode = enc_mode
 		if not self.targeted_G: 
 			self.sample_weights = torch.ones(hps.n_speakers)
 		else:
@@ -49,16 +47,16 @@ class Trainer(object):
 	def build_model(self):
 		hps = self.hps
 		ns = self.hps.ns
+		enc_mode = self.enc_mode
 		emb_size = self.hps.emb_size
 		betas = (0.5, 0.9)
 
 		#---stage one---#
 		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, emb_size=emb_size, \
-								  seg_len=hps.seg_len, one_hot=self.one_hot, \
-								  binary_output=self.binary_output, binary_ver=self.binary_ver))
+								  seg_len=hps.seg_len, enc_mode=enc_mode))
 		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers, \
-								  seg_len=hps.seg_len, inp_emb=self.one_hot or self.binary_output))
-		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size if not self.binary_output else emb_size * emb_size, \
+								  seg_len=hps.seg_len, inp_emb=False if enc_mode == 'continues' else True))
+		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size * emb_size if enc_mode == 'binary' else emb_size, \
 													  c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
 		#---stage one opts---#
@@ -69,7 +67,7 @@ class Trainer(object):
 		#---stage two---#
 		self.Generator = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, \
 									c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers, \
-									seg_len=hps.seg_len, inp_emb=self.one_hot or self.binary_output))
+									seg_len=hps.seg_len, inp_emb=False if enc_mode == 'continues' else True))
 		self.PatchDiscriminator = cc(nn.DataParallel(PatchDiscriminator(ns=ns, n_class=hps.n_speakers \
 																		if not self.targeted_G else hps.n_target_speakers,
 																		seg_len=hps.seg_len)))
