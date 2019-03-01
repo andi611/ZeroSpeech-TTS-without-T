@@ -14,7 +14,7 @@ from tqdm import tqdm
 from convert import convert_all_sp, test
 from dataloader import DataLoader, Dataset
 from hps.hps import Hps
-from model import Decoder
+from parallages import VariationalDecoder as Decoder
 from trainer import Trainer
 from utils import grad_clip, reset_grad
 

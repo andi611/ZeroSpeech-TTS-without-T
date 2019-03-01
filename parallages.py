@@ -7,7 +7,7 @@ from model import (RNN, append_emb, gumbel_softmax, linear,
 
 
 class VariationalDecoder(nn.Module):
-    def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2):
+    def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, *args, **kwargs):
         super().__init__()
         self.ns = ns
         self.conv1 = nn.Conv1d(c_in, 2*c_h, kernel_size=3)
@@ -94,7 +94,7 @@ class VariationalDecoder(nn.Module):
 
 
 class VariationalEncoder(nn.Module):
-    def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, one_hot=False):
+    def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, one_hot=False, *args, **kwargs):
         super().__init__()
         self.ns = ns
         self.one_hot = one_hot
@@ -182,11 +182,11 @@ class VariationalEncoder(nn.Module):
         out = torch.cat([out, out_rnn], dim=1)
         out = linear(out, self.linear)
 
-        z = RNN(out, self.mean)
+        mean = RNN(out, self.mean)
         log_var = RNN(out, self.log_var)
 
         if self.one_hot:
             out = gumbel_softmax(out)
         else:
             out = F.leaky_relu(out, negative_slope=self.ns)
-        return out, z, log_var
+        return out, mean, log_var

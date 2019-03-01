@@ -12,18 +12,18 @@
 ###############
 import os
 import pickle
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import nn
-from torch import optim
+from torch import nn, optim
 from torch.autograd import Variable
-from model import Encoder, Decoder
-from model import SpeakerClassifier
-from model import PatchDiscriminator
-from utils import Logger, cc, to_var
-from utils import grad_clip, reset_grad
-from utils import calculate_gradients_penalty
+
+from model import PatchDiscriminator, SpeakerClassifier
+from parallages import VariationalDecoder as Decoder
+from parallages import VariationalEncoder as Encoder
+from utils import (Logger, calculate_gradients_penalty, cc, grad_clip,
+                   reset_grad, to_var)
 
 
 class Trainer(object):
@@ -290,11 +290,13 @@ class Trainer(object):
 					
 					# encode
 					enc = self.encode_step(x)
-					
+					_, z_mean, z_log_var = enc
+					kl_loss = (1 + z_log_var - z_mean**2 - torch.exp(z_log_var)).sum(-1)*-.5
+					kl_loss = kl_loss.sum()
 					# classify speaker
 					logits = self.clf_step(enc)
 					loss_clf = self.cal_loss(logits, c)
-					loss = hps.alpha_dis * loss_clf
+					loss = hps.alpha_dis * loss_clf + kl_loss
 					
 					# update 
 					reset_grad([self.SpeakerClassifier])
@@ -448,6 +450,3 @@ class Trainer(object):
 		
 		else: 
 			raise NotImplementedError()
-
-
-
