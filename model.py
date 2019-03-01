@@ -308,13 +308,14 @@ class Decoder(nn.Module):
 
 
 class Encoder(nn.Module):
-	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, seg_len=64, one_hot=False, binary_output=False):
+	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, seg_len=64, one_hot=False, binary_output=False, binary_ver=0):
 		super(Encoder, self).__init__()
 		self.ns = ns
 		self.emb_size = emb_size
 		self.seg_len = seg_len
 		self.one_hot = one_hot
 		self.binary_output = binary_output
+		self.binary_ver = binary_ver
 		self.conv1s = nn.ModuleList(
 				[nn.Conv1d(c_in, c_h1, kernel_size=k) for k in range(1, 8)]
 			)
@@ -331,7 +332,11 @@ class Encoder(nn.Module):
 		self.dense4 = nn.Linear(c_h2, c_h2)
 		self.RNN = nn.GRU(input_size=c_h2, hidden_size=c_h3, num_layers=1, bidirectional=True)
 		self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size)
-		if self.binary_output: self.project_linear = nn.Linear(c_h2 + 2*c_h3, emb_size * emb_size)
+		if self.binary_output and self.binary_ver == 0:
+			self.project_linear = nn.Linear(c_h2 + 2*c_h3, emb_size * emb_size)
+		elif self.binary_output and self.binary_ver == 1:
+			assert emb_size%2 == 0
+			self.project_linear = nn.Linear(c_h2 + 2*c_h3, emb_size)
 		# normalization layer
 		self.ins_norm1 = nn.InstanceNorm1d(c_h2)
 		self.ins_norm2 = nn.InstanceNorm1d(c_h2)
@@ -389,13 +394,20 @@ class Encoder(nn.Module):
 		out = torch.cat([out, out_rnn], dim=1)
 		
 		if self.binary_output:
-			out = linear(out, self.project_linear)
-			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size^2)
-			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, self.emb_size) # shape: (batch_size, t_step, emb_size, emb_size)
-			out_act = gumbel_softmax(out_proj).sum(2).view(out_proj.size(0), out_proj.size(1), -1) # shape: (batch_size, t_step, emb_size)
-			out_act = torch.clamp(out_act, min=0, max=1) # binarize output
-			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
-		
+			if self.binary_ver == 0:
+				out = linear(out, self.project_linear)
+				out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size^2)
+				out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, self.emb_size) # shape: (batch_size, t_step, emb_size, emb_size)
+				out_act = gumbel_softmax(out_proj).sum(2).view(out_proj.size(0), out_proj.size(1), -1) # shape: (batch_size, t_step, emb_size)
+				out_act = torch.clamp(out_act, min=0, max=1) # binarize output
+				out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
+			elif self.binary_ver == 1:
+				out = linear(out, self.project_linear) # shape: (batch_size, emb_size, t_step)
+				out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size)
+				out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size//2, 2) # shape: (batch_size, t_step, emb_size/2, 2)
+				out_act = gumbel_softmax(out_proj);
+				out_act = out_act.view(out_act.size(0), out_act.size(1), self.emb_size) # shape: (batch_size, t_step, emb_size)
+				out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, t_step, emb_size)
 		elif self.one_hot:
 			out = linear(out, self.linear)
 			out_act = gumbel_softmax(out.permute(0, 2, 1))
