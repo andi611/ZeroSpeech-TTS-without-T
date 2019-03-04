@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
-	static_setting.add_argument('--remake', type=bool, default=bool(1), help='whether to remake dataset.hdf5')
+	static_setting.add_argument('--remake', type=bool, default=bool(0), help='whether to remake dataset.hdf5')
 	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
 	static_setting.add_argument('--enc_mode', choices=['continues', 'one_hot', 'binary', 'binary_sparse', 'gumbel_t', 'set_from_hps'], default='set_from_hps', help='different output method for the encoder to generate encodings')
 	static_setting.add_argument('--enc_only', type=bool, default=bool(0), help='whether to predict only with stage 1 audoencoder')
