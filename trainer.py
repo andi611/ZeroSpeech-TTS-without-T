@@ -56,7 +56,8 @@ class Trainer(object):
 								  seg_len=hps.seg_len, enc_mode=enc_mode))
 		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers, \
 								  seg_len=hps.seg_len, inp_emb=False if enc_mode == 'continues' else True))
-		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size * emb_size if enc_mode == 'binary' else emb_size, \
+		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size * emb_size if enc_mode == 'binary' else \
+													  (2*emb_size if enc_mode == 'binary_sparse' else emb_size), \
 													  c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
 		#---stage one opts---#
