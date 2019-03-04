@@ -102,12 +102,12 @@ if __name__ == '__main__':
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), model_all=False)
 
 		if args.train:
-			# trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
+			trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
 			# trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
 			# trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
 			
-			trainer.add_duo_loader(source_loader, target_loader)
-			trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
+			# trainer.add_duo_loader(source_loader, target_loader)
+			# trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
 
 	if args.test or args.cross_test or args.test_single:
 

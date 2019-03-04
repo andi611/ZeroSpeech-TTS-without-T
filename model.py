@@ -127,7 +127,7 @@ class PatchDiscriminator(nn.Module):
 		elif self.seg_len == 64:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 2))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 2))
-		elif self.seg_len == 8:
+		elif self.seg_len == 32:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 1))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 1))
 		else:
@@ -191,8 +191,8 @@ class SpeakerClassifier(nn.Module):
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=16)
 		elif self.seg_len == 64:
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=8)
-		elif self.seg_len == 8:
-			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=1)
+		elif self.seg_len == 32:
+			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=4)
 		else:
 			raise NotImplementedError('Segement length {} is not supported!'.format(seg_len))
 		self.drop1 = nn.Dropout(p=dp)
@@ -332,6 +332,8 @@ class Encoder(nn.Module):
 		
 		if self.enc_mode == 'binary':
 			self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size * emb_size)
+		elif self.enc_mode == 'binary_sparse':
+			self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size*2)
 		elif self.enc_mode == 'continues' or self.enc_mode == 'one_hot' or self.enc_mode == 'binary_sparse' or self.enc_mode == 'gumbel_t':
 			assert emb_size % 2 == 0
 			self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size)
@@ -412,12 +414,12 @@ class Encoder(nn.Module):
 			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
 		
 		elif self.enc_mode == 'binary_sparse':
-			out = linear(out, self.linear) # shape: (batch_size, emb_size, t_step)
-			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size)
-			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size//2, 2) # shape: (batch_size, t_step, emb_size/2, 2)
-			out_act = gumbel_softmax(out_proj);
+			out = linear(out, self.linear) # shape: (batch_size, emb_size*2, t_step)
+			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size*2)
+			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, 2) # shape: (batch_size, t_step, emb_size, 2)
+			out_act = gumbel_softmax(out_proj)[:, :, :, 0] # shape: (batch_size, t_step, emb_size, 1)
 			out_act = out_act.view(out_act.size(0), out_act.size(1), self.emb_size) # shape: (batch_size, t_step, emb_size)
-			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, t_step, emb_size)
+			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
 
 		elif self.enc_mode == 'gumbel_t':
 			out = linear(out, self.linear)
