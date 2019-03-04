@@ -152,6 +152,7 @@ class Sampler(object):
 
 		self.speaker2utts = {speaker : sorted(list(self.f_h5[f'{dset}/{speaker}'].keys())) for speaker in self.speaker_used}
 		self.rm_too_short_utt()
+		self.speaker_weight = [len(self.speaker2utts[speaker_id]) / self.total_utt for speaker_id in self.speaker_used]
 		self.indexer = namedtuple('index', ['speaker', 'i', 't'])
 
 
@@ -162,7 +163,7 @@ class Sampler(object):
 
 
 	def rm_too_short_utt(self, limit=None):
-		ori_cnt = self.get_num_utts()
+		self.total_utt = self.get_num_utts()
 		to_rm = defaultdict(lambda : [])
 		if limit is None:
 			limit = self.seg_len
@@ -174,7 +175,7 @@ class Sampler(object):
 			for utt_id in utt_ids:
 				self.speaker2utts[speaker_id].remove(utt_id)
 		new_cnt = self.get_num_utts()
-		print('[Sampler] - %i too short utterences out of a total of %i are removed.' % (ori_cnt - new_cnt, ori_cnt))
+		print('[Sampler] - %i too short utterences out of a total of %i are removed.' % (self.total_utt - new_cnt, self.total_utt))
 
 				
 	def sample_utt(self, speaker_id, n_samples=1):
@@ -190,7 +191,7 @@ class Sampler(object):
 
 
 	def sample(self):
-		speaker, = random.sample(self.speaker_used, 1)
+		speaker = np.random.choice(self.speaker_used, p=self.speaker_weight)
 		speaker_idx = self.speaker2id[speaker]
 		(utt_id, utt_len), = self.sample_utt(speaker, 1)
 		t = random.randint(0, utt_len - self.seg_len)  
