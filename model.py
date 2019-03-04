@@ -127,7 +127,7 @@ class PatchDiscriminator(nn.Module):
 		elif self.seg_len == 64:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 2))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 2))
-		elif self.seg_len == 8:
+		elif self.seg_len == 32:
 			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 1))
 			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 1))
 		else:
@@ -191,8 +191,8 @@ class SpeakerClassifier(nn.Module):
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=16)
 		elif self.seg_len == 64:
 			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=8)
-		elif self.seg_len == 8:
-			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=1)
+		elif self.seg_len == 32:
+			self.conv9 = nn.Conv1d(c_h//4, n_class, kernel_size=4)
 		else:
 			raise NotImplementedError('Segement length {} is not supported!'.format(seg_len))
 		self.drop1 = nn.Dropout(p=dp)
