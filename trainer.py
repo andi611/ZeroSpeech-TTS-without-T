@@ -443,7 +443,7 @@ class Trainer(object):
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
 				if (iteration + 1) % 1000 == 0:
-					self.save_model(model_path, 's2', iteration + 1 + hps.iters)
+					self.save_model(model_path, 's2', iteration + 1)
 			print()
 		
 		else: 

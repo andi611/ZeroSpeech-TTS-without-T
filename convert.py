@@ -84,27 +84,28 @@ def convert(trainer,
 			enc_only=True,
 			save=True): 
 	
-	if len(src_speaker_spec) > seg_len:
-		converted_results = []
-		encodings = []
-		for idx in range(0, len(src_speaker_spec), seg_len):
-			try: spec_frag = src_speaker_spec[idx:idx+seg_len]
-			except: spec_frag = src_speaker_spec[idx:-1]
-			converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
-			converted_results.append(converted_x)
-			encodings.append(enc)
+	if len(src_speaker_spec) < seg_len:
+		padding = np.zeros((seg_len - src_speaker_spec.shape[0] + 1, src_speaker_spec.shape[1]))
+		src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
+		
+	converted_results = []
+	encodings = []
+	for idx in range(0, len(src_speaker_spec), seg_len):
+		try: spec_frag = src_speaker_spec[idx:idx+seg_len]
+		except: spec_frag = src_speaker_spec[idx:-1]
+		converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
+		converted_results.append(converted_x)
+		encodings.append(enc)
 
-		converted_results = np.concatenate(converted_results, axis=0)
-		encodings = np.concatenate(encodings, axis=0)
+	converted_results = np.concatenate(converted_results, axis=0)
+	encodings = np.concatenate(encodings, axis=0)
 
-		wav_data = spectrogram2wav(converted_results)
-		if save:
-			wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
-			sf.write(wav_path, wav_data, hp.sr, 'PCM_24')
-		else:
-			return wav_data, encodings
+	wav_data = spectrogram2wav(converted_results)
+	if save:
+		wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
+		sf.write(wav_path, wav_data, hp.sr, 'PCM_24')
 	else:
-		print('[Tester] - Unable to process \"{}\" of speaker {}: '.format(utt_id, f_h5[f'{dset}/{src_speaker}']))
+		return wav_data, encodings
 
 
 def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path, result_dir, enc_only, flag='test'):
@@ -182,6 +183,8 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 		filename = './data/english/train/unit/S015_0361841101.wav' 
 	elif s_speaker == 'S119':
 		filename = './data/english/train/unit/S119_1561145062.wav' 
+	elif s_speaker == 'S130':
+		filename = './data/english/test/S130_3516588097.wav' 
 	else:
 		raise NotImplementedError('Please modify path manually!')
 	

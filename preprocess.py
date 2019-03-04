@@ -40,11 +40,11 @@ def preprocess(source_path,
 		with h5py.File(dataset_path, 'w') as h5py_file:
 			grps = [h5py_file.create_group('train'), h5py_file.create_group('test')]
 			print('[Processor] - making training dataset...')
-			make_dataset(grps, root_dir=source_path)
-			make_dataset(grps, root_dir=target_path)
+			make_dataset(grps, seg_len, root_dir=source_path)
+			make_dataset(grps, seg_len, root_dir=target_path)
 			
 			print('[Processor] - making testing dataset...')
-			make_dataset(grps, root_dir=test_path, make_test=True)
+			make_dataset(grps, seg_len, root_dir=test_path, make_test=True, pad=False)
 
 	# stage 1 training samples
 	print('[Processor] - making stage 1 training samples with segment length = ', seg_len)
@@ -74,7 +74,7 @@ def preprocess(source_path,
 	print()
 
 
-def make_dataset(grps, root_dir, make_test=False):
+def make_dataset(grps, seg_len, root_dir, make_test=False, pad=True):
 	
 	filenames = glob.glob(os.path.join(root_dir, '*_*.wav'))
 	filename_groups = defaultdict(lambda : [])
@@ -89,9 +89,18 @@ def make_dataset(grps, root_dir, make_test=False):
 
 	for speaker_id, filenames in filename_groups.items():
 		for filename in filenames:
-			print('[Processor] - processing {}: {}'.format(speaker_id, filename), end='\r')
 			speaker_id, segment_id = filename.strip().split('/')[-1].strip('.wav').split('_')
 			mel_spec, lin_spec = get_spectrograms(filename)
+
+			if pad and len(lin_spec) <= seg_len:
+				mel_padding = np.zeros((seg_len - mel_spec.shape[0] + 1, mel_spec.shape[1]))
+				lin_padding = np.zeros((seg_len - lin_spec.shape[0] + 1, lin_spec.shape[1]))
+				mel_spec = np.concatenate((mel_spec, mel_padding), axis=0)
+				lin_spec = np.concatenate((lin_spec, lin_padding), axis=0)
+				print('[Processor] - processing {}: {} - padded to {}'.format(speaker_id, filename, np.shape(lin_spec)), end='\r')
+			else:
+				print('[Processor] - processing {}: {}'.format(speaker_id, filename), end='\r')
+				
 			grp.create_dataset('{}/{}/mel'.format(speaker_id, segment_id), data=mel_spec, dtype=np.float32)
 			grp.create_dataset('{}/{}/lin'.format(speaker_id, segment_id), data=lin_spec, dtype=np.float32)
 		print() 
@@ -156,7 +165,7 @@ class Sampler(object):
 		ori_cnt = self.get_num_utts()
 		to_rm = defaultdict(lambda : [])
 		if limit is None:
-			limit = self.seg_len * 2
+			limit = self.seg_len
 		for speaker_id in self.speaker_used:
 			for utt_id in self.speaker2utts[speaker_id]:
 				if self.f_h5[f'{self.dset}/{speaker_id}/{utt_id}/lin'].shape[0] <= limit:
