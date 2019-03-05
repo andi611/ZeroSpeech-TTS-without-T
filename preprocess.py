@@ -147,7 +147,7 @@ class Sampler(object):
 			self.speaker_used = ['V001', 'V002']
 			print('[Sampler] - Generating stage 2 training target segments...')
 		else:
-			raise NotImplementedError()
+			raise NotImplementedError('Invalid make object!')
 		print('[Sampler] - Speaker used: ', self.speaker_used)
 
 		self.speaker2utts = {speaker : sorted(list(self.f_h5[f'{dset}/{speaker}'].keys())) for speaker in self.speaker_used}
