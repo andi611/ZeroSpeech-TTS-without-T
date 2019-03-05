@@ -226,11 +226,10 @@ class SpeakerClassifier(nn.Module):
 
 
 class Decoder(nn.Module):
-	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64, inp_emb=False):
+	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64):
 		super(Decoder, self).__init__()
 		self.ns = ns
 		self.seg_len = seg_len
-		self.inp_emb = inp_emb
 		self.conv1 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
 		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=3)
 		self.conv3 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
@@ -252,7 +251,7 @@ class Decoder(nn.Module):
 		self.ins_norm5 = nn.InstanceNorm1d(c_h)
 		# embedding layer
 
-		if self.inp_emb: self.input_emb = nn.Linear(c_in, c_h)
+		self.input_emb = nn.Linear(c_in, c_h)
 		self.emb1 = nn.Embedding(c_a, c_h)
 		self.emb2 = nn.Embedding(c_a, c_h)
 		self.emb3 = nn.Embedding(c_a, c_h)
@@ -288,7 +287,7 @@ class Decoder(nn.Module):
 
 	def forward(self, x, c):
 		# conv layer
-		out = self.conv_block(linear(x, self.input_emb) if self.inp_emb else x, [self.conv1, self.conv2], self.ins_norm1, self.emb1(c), res=True)
+		out = self.conv_block(linear(x, self.input_emb), [self.conv1, self.conv2], self.ins_norm1, self.emb1(c), res=True)
 		out = self.conv_block(out, [self.conv3, self.conv4], self.ins_norm2, self.emb2(c), res=True)
 		out = self.conv_block(out, [self.conv5, self.conv6], self.ins_norm3, self.emb3(c), res=True)
 		# dense layer
@@ -308,10 +307,10 @@ class Decoder(nn.Module):
 
 
 class Encoder(nn.Module):
-	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, emb_size=512, seg_len=64, enc_mode='continues'):
+	def __init__(self, c_in=513, c_h1=128, c_h2=512, c_h3=128, ns=0.2, dp=0.5, enc_size=512, seg_len=64, enc_mode='continues'):
 		super(Encoder, self).__init__()
 		self.ns = ns
-		self.emb_size = emb_size
+		self.enc_size = enc_size
 		self.seg_len = seg_len
 		self.enc_mode = enc_mode
 		self.conv1s = nn.ModuleList(
@@ -331,12 +330,12 @@ class Encoder(nn.Module):
 		self.RNN = nn.GRU(input_size=c_h2, hidden_size=c_h3, num_layers=1, bidirectional=True)
 		
 		if self.enc_mode == 'binary':
-			self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size * emb_size)
-		elif self.enc_mode == 'binary_sparse':
-			self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size*2)
-		elif self.enc_mode == 'continues' or self.enc_mode == 'one_hot' or self.enc_mode == 'binary_sparse' or self.enc_mode == 'gumbel_t':
-			assert emb_size % 2 == 0
-			self.linear = nn.Linear(c_h2 + 2*c_h3, emb_size)
+			self.linear = nn.Linear(c_h2 + 2*c_h3, enc_size * enc_size)
+		elif self.enc_mode == 'multilabel_binary':
+			self.linear = nn.Linear(c_h2 + 2*c_h3, enc_size*2)
+		elif self.enc_mode == 'continues' or self.enc_mode == 'one_hot' or self.enc_mode == 'multilabel_binary' or self.enc_mode == 'gumbel_t':
+			assert enc_size % 2 == 0
+			self.linear = nn.Linear(c_h2 + 2*c_h3, enc_size)
 		else:
 			raise NotImplementedError('Invalid encoding mode!')
 
@@ -407,19 +406,19 @@ class Encoder(nn.Module):
 		
 		elif self.enc_mode == 'binary':
 			out = linear(out, self.linear)
-			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size^2)
-			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, self.emb_size) # shape: (batch_size, t_step, emb_size, emb_size)
-			out_act = gumbel_softmax(out_proj).sum(2).view(out_proj.size(0), out_proj.size(1), -1) # shape: (batch_size, t_step, emb_size)
+			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, enc_size^2)
+			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.enc_size, self.enc_size) # shape: (batch_size, t_step, enc_size, enc_size)
+			out_act = gumbel_softmax(out_proj).sum(2).view(out_proj.size(0), out_proj.size(1), -1) # shape: (batch_size, t_step, enc_size)
 			out_act = torch.clamp(out_act, min=0, max=1) # binarize output
-			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
+			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, enc_size, t_step)
 		
-		elif self.enc_mode == 'binary_sparse':
-			out = linear(out, self.linear) # shape: (batch_size, emb_size*2, t_step)
-			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, emb_size*2)
-			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.emb_size, 2) # shape: (batch_size, t_step, emb_size, 2)
-			out_act = gumbel_softmax(out_proj)[:, :, :, 0] # shape: (batch_size, t_step, emb_size, 1)
-			out_act = out_act.view(out_act.size(0), out_act.size(1), self.emb_size) # shape: (batch_size, t_step, emb_size)
-			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, emb_size, t_step)
+		elif self.enc_mode == 'multilabel_binary':
+			out = linear(out, self.linear) # shape: (batch_size, enc_size*2, t_step)
+			out_proj = out.permute(0, 2, 1) # shape: (batch_size, t_step, enc_size*2)
+			out_proj = out_proj.view(out_proj.size(0), out_proj.size(1), self.enc_size, 2) # shape: (batch_size, t_step, enc_size, 2)
+			out_act = gumbel_softmax(out_proj)[:, :, :, 0] # shape: (batch_size, t_step, enc_size, 1)
+			out_act = out_act.view(out_act.size(0), out_act.size(1), self.enc_size) # shape: (batch_size, t_step, enc_size)
+			out_act = out_act.permute(0, 2, 1).contiguous() # shape: (batch_size, enc_size, t_step)
 
 		elif self.enc_mode == 'gumbel_t':
 			out = linear(out, self.linear)

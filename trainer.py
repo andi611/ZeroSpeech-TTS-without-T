@@ -48,16 +48,16 @@ class Trainer(object):
 		hps = self.hps
 		ns = self.hps.ns
 		enc_mode = self.enc_mode
+		enc_size = self.hps.enc_size
 		emb_size = self.hps.emb_size
 		betas = (0.5, 0.9)
 
 		#---stage one---#
-		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, emb_size=emb_size, \
+		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, enc_size=enc_size, \
 								  seg_len=hps.seg_len, enc_mode=enc_mode))
-		self.Decoder = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, c_a=hps.n_speakers, \
-								  seg_len=hps.seg_len, inp_emb=False if enc_mode == 'continues' else True))
-		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=emb_size * emb_size if enc_mode == 'binary' else \
-													  (2*emb_size if enc_mode == 'binary_sparse' else emb_size), \
+		self.Decoder = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_speakers, seg_len=hps.seg_len))
+		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=enc_size * enc_size if enc_mode == 'binary' else \
+													  (2*enc_size if enc_mode == 'multilabel_binary' else enc_size), \
 													  c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
 		
 		#---stage one opts---#
@@ -66,9 +66,8 @@ class Trainer(object):
 		self.clf_opt = optim.Adam(self.SpeakerClassifier.parameters(), lr=self.hps.lr, betas=betas)
 		
 		#---stage two---#
-		self.Generator = cc(Decoder(ns=ns, c_in=emb_size, c_h=emb_size, \
-									c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers, \
-									seg_len=hps.seg_len, inp_emb=False if enc_mode == 'continues' else True))
+		self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, \
+									c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers, seg_len=hps.seg_len))
 		self.PatchDiscriminator = cc(nn.DataParallel(PatchDiscriminator(ns=ns, n_class=hps.n_speakers \
 																		if not self.targeted_G else hps.n_target_speakers,
 																		seg_len=hps.seg_len)))
