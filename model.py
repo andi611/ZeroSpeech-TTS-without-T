@@ -429,3 +429,15 @@ class Encoder(nn.Module):
 		
 		return out_act, out
 
+
+class Enhanced_Generator(nn.Module):
+	def __init__(self, ns, dp, enc_size, emb_size, seg_len, n_speakers):
+		super(Enhanced_Generator, self).__init__()
+		
+		self.Encoder = Encoder(ns=ns, dp=dp, enc_size=enc_size, seg_len=seg_len, enc_mode='continues')
+		self.Decoder = Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=n_speakers, seg_len=seg_len)
+
+	def forward(self, x, c):
+		enc_act, enc = self.Encoder(x)
+		x_dec = self.Decoder(enc_act, c)
+		return x_dec

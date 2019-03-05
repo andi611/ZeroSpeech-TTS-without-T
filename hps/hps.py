@@ -37,6 +37,7 @@ hp = processing_hyperparams()
 class Hps(object):
 	def __init__(self, path=None):
 		self.hps = namedtuple('hps', [
+			'g_mode',
 			'enc_mode',
 			'lr',
 			'alpha_dis',
@@ -72,7 +73,7 @@ class Hps(object):
 		else:
 			print('Using default parameters since no .json file is provided.')
 			default = \
-				['continues', 1e-4, 1, 1e-4, 0, 0, 0, 10, 0.01, 0.5, 0.1, 5, 5, 128, 400000, 1024, 1024, 102, 2, 5, 0, 32, 50000, 5000, 5000, 30000, 60000, 10]
+				['enhanced', 'continues', 1e-4, 1, 1e-4, 0, 0, 0, 10, 0.01, 0.5, 0.1, 5, 5, 128, 400000, 1024, 1024, 102, 2, 5, 0, 32, 50000, 5000, 5000, 30000, 60000, 10]
 			self._hps = self.hps._make(default)
 
 	def get_tuple(self):

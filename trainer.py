@@ -21,21 +21,22 @@ from torch.autograd import Variable
 from model import Encoder, Decoder
 from model import SpeakerClassifier
 from model import PatchDiscriminator
+from model import Enhanced_Generator
 from utils import Logger, cc, to_var
 from utils import grad_clip, reset_grad
 from utils import calculate_gradients_penalty
 
 
 class Trainer(object):
-	def __init__(self, hps, data_loader, targeted_G, enc_mode, log_dir='./log/'):
+	def __init__(self, hps, data_loader, g_mode, enc_mode, log_dir='./log/'):
 		self.hps = hps
 		self.data_loader = data_loader
 		self.model_kept = []
 		self.max_keep = hps.max_to_keep
 		self.logger = Logger(log_dir)
-		self.targeted_G = targeted_G
+		self.g_mode = g_mode
 		self.enc_mode = enc_mode
-		if not self.targeted_G: 
+		if self.g_mode == 'naive': 
 			self.sample_weights = torch.ones(hps.n_speakers)
 		else:
 			self.sample_weights = torch.cat((torch.zeros(hps.n_speakers-hps.n_target_speakers), \
@@ -48,17 +49,17 @@ class Trainer(object):
 		hps = self.hps
 		ns = self.hps.ns
 		enc_mode = self.enc_mode
+		seg_len = self.hps.seg_len
 		enc_size = self.hps.enc_size
 		emb_size = self.hps.emb_size
 		betas = (0.5, 0.9)
 
 		#---stage one---#
-		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, enc_size=enc_size, \
-								  seg_len=hps.seg_len, enc_mode=enc_mode))
-		self.Decoder = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_speakers, seg_len=hps.seg_len))
+		self.Encoder = cc(Encoder(ns=ns, dp=hps.enc_dp, enc_size=enc_size, seg_len=seg_len, enc_mode=enc_mode))
+		self.Decoder = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_speakers, seg_len=seg_len))
 		self.SpeakerClassifier = cc(SpeakerClassifier(ns=ns, c_in=enc_size * enc_size if enc_mode == 'binary' else \
 													  (2*enc_size if enc_mode == 'multilabel_binary' else enc_size), \
-													  c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=hps.seg_len))
+													  c_h=emb_size, n_class=hps.n_speakers, dp=hps.dis_dp, seg_len=seg_len))
 		
 		#---stage one opts---#
 		params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())
@@ -66,11 +67,18 @@ class Trainer(object):
 		self.clf_opt = optim.Adam(self.SpeakerClassifier.parameters(), lr=self.hps.lr, betas=betas)
 		
 		#---stage two---#
-		self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, \
-									c_a=hps.n_speakers if not self.targeted_G else hps.n_target_speakers, seg_len=hps.seg_len))
+		if self.g_mode == 'naive':
+			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_speakers, seg_len=seg_len))
+		elif self.g_mode == 'targeted':
+			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
+		elif self.g_mode == 'enhanced':
+			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=enc_size, emb_size=emb_size, seg_len=seg_len, n_speakers=hps.n_speakers))
+		else:
+			raise NotImplementedError('Invalid Generator mode!')
+			
 		self.PatchDiscriminator = cc(nn.DataParallel(PatchDiscriminator(ns=ns, n_class=hps.n_speakers \
-																		if not self.targeted_G else hps.n_target_speakers,
-																		seg_len=hps.seg_len)))
+																		if self.g_mode == 'naive' else hps.n_target_speakers,
+																		seg_len=seg_len)))
 		
 		#---stage two opts---#
 		self.gen_opt = optim.Adam(self.Generator.parameters(), lr=self.hps.lr, betas=betas)
@@ -130,15 +138,24 @@ class Trainer(object):
 		self.set_eval()
 		x = to_var(x).permute(0, 2, 1)
 		enc, _ = self.Encoder(x)
-		x_tilde = self.Decoder(enc, c)
+		x_dec = self.Decoder(enc, c)
 		if not enc_only:
 			if verbose: print('Testing with Autoencoder + Generator, encoding: ', enc.data.cpu().numpy())
 			if self.targeted_G and (c - self.testing_shift_c).data.cpu().numpy()[0] not in range(self.hps.n_target_speakers):
 				raise RuntimeError('This generator can only convert to target speakers!')
-			x_tilde += self.Generator(enc, c) if not self.targeted_G else self.Generator(enc, c - self.testing_shift_c)
+			
+			#---select Generator mode---#
+			if self.g_mode == 'naive':
+				x_dec += self.Generator(enc, c)
+			elif self.g_mode == 'targeted':
+				x_dec += self.Generator(enc, c - self.testing_shift_c)
+			elif self.g_mode == 'enhanced':
+				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
+			else:
+				raise NotImplementedError('Invalid Generator mode!')
 		else:
 			if verbose: print('Testing with Autoencoder only, encoding: ', enc.data.cpu().numpy())
-		return x_tilde.data.cpu().numpy(), enc.data.cpu().numpy()
+		return x_dec.data.cpu().numpy(), enc.data.cpu().numpy()
 
 
 	def permute_data(self, data):
@@ -161,24 +178,29 @@ class Trainer(object):
 
 
 	def decode_step(self, enc, c):
-		x_tilde = self.Decoder(enc, c)
-		return x_tilde
+		x_dec = self.Decoder(enc, c)
+		return x_dec
 
 
-	def patch_step(self, x, x_tilde, is_dis=True):
+	def patch_step(self, x, x_dec, is_dis=True):
 		D_real, real_logits = self.PatchDiscriminator(x, classify=True)
-		D_fake, fake_logits = self.PatchDiscriminator(x_tilde, classify=True)
+		D_fake, fake_logits = self.PatchDiscriminator(x_dec, classify=True)
 		if is_dis:
 			w_dis = torch.mean(D_real - D_fake)
-			gp = calculate_gradients_penalty(self.PatchDiscriminator, x, x_tilde)
+			gp = calculate_gradients_penalty(self.PatchDiscriminator, x, x_dec)
 			return w_dis, real_logits, gp
 		else:
 			return -torch.mean(D_fake), fake_logits
 
 
 	def gen_step(self, enc, c):
-		x_gen = self.Decoder(enc, c)
-		x_gen += self.Generator(enc, c) if not self.targeted_G else self.Generator(enc, c - self.shift_c) 
+		x_dec = self.Decoder(enc, c)
+		if self.g_mode == 'naive':
+			x_gen = x_dec + self.Generator(enc, c)
+		elif self.g_mode == 'targeted':
+			x_gen = x_dec + self.Generator(enc, c - self.shift_c)
+		elif self.g_mode == 'enhanced':
+			x_gen = x_dec + self.Generator(x_dec, c - self.shift_c)
 		return x_gen 
 
 
@@ -190,11 +212,12 @@ class Trainer(object):
 	def cal_loss(self, logits, y_true, shift=False):
 		# calculate loss 
 		criterion = nn.CrossEntropyLoss()
-		if shift and self.targeted_G: 
+		if shift and self.g_mode != 'naive': 
 			loss = criterion(logits, y_true - self.shift_c)
 		else: 
 			loss = criterion(logits, y_true)
 		return loss
+
 
 	def cal_acc(self, logits, y_true, shift=False):
 		_, ind = torch.max(logits, dim=1)
@@ -216,8 +239,8 @@ class Trainer(object):
 				
 				# encode
 				enc_act, enc = self.encode_step(x)
-				x_tilde = self.decode_step(enc_act, c)
-				loss_rec = torch.mean(torch.abs(x_tilde - x))
+				x_dec = self.decode_step(enc_act, c)
+				loss_rec = torch.mean(torch.abs(x_dec - x))
 				reset_grad([self.Encoder, self.Decoder])
 				loss_rec.backward()
 				grad_clip([self.Encoder, self.Decoder], self.hps.max_grad_norm)
@@ -323,8 +346,8 @@ class Trainer(object):
 				enc_act, enc = self.encode_step(x)
 				
 				# decode
-				x_tilde = self.decode_step(enc_act, c)
-				loss_rec = torch.mean(torch.abs(x_tilde - x))
+				x_dec = self.decode_step(enc_act, c)
+				loss_rec = torch.mean(torch.abs(x_dec - x))
 				
 				# classify speaker
 				logits = self.clf_step(enc)
@@ -372,10 +395,10 @@ class Trainer(object):
 					c_prime = self.sample_c(x_t.size(0))
 					
 					# generator
-					x_tilde = self.gen_step(enc_act, c_prime)
+					x_dec = self.gen_step(enc_act, c_prime)
 					
 					# discriminstor
-					w_dis, real_logits, gp = self.patch_step(x_t, x_tilde, is_dis=True)
+					w_dis, real_logits, gp = self.patch_step(x_t, x_dec, is_dis=True)
 					
 					# aux classification loss 
 					loss_clf = self.cal_loss(real_logits, c, shift=True)
@@ -415,10 +438,10 @@ class Trainer(object):
 				c_prime = self.sample_c(x_t.size(0))
 				
 				# generator
-				x_tilde = self.gen_step(enc_act, c_prime)
+				x_dec = self.gen_step(enc_act, c_prime)
 				
 				# discriminstor
-				loss_adv, fake_logits = self.patch_step(x_t, x_tilde, is_dis=False)
+				loss_adv, fake_logits = self.patch_step(x_t, x_dec, is_dis=False)
 				
 				# aux classification loss 
 				loss_clf = self.cal_loss(fake_logits, c_prime, shift=True)
