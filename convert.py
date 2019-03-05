@@ -85,9 +85,9 @@ def convert(trainer,
 			save=True): 
 	
 	if len(src_speaker_spec) < seg_len:
-		padding = np.zeros((seg_len - src_speaker_spec.shape[0] + 1, src_speaker_spec.shape[1]))
+		padding = np.zeros((seg_len - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
 		src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
-		
+
 	converted_results = []
 	encodings = []
 	for idx in range(0, len(src_speaker_spec), seg_len):
@@ -185,6 +185,8 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 		filename = './data/english/train/unit/S119_1561145062.wav' 
 	elif s_speaker == 'S130':
 		filename = './data/english/test/S130_3516588097.wav' 
+	elif s_speaker == 'S089':
+		filename = './data/english/test/S089_1810826781.wav' 
 	else:
 		raise NotImplementedError('Please modify path manually!')
 	
