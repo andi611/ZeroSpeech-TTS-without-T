@@ -72,7 +72,7 @@ class Trainer(object):
 		elif self.g_mode == 'targeted':
 			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		elif self.g_mode == 'enhanced':
-			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=enc_size, emb_size=emb_size, seg_len=seg_len, n_speakers=hps.n_speakers))
+			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=1024, emb_size=1024, seg_len=seg_len, n_speakers=hps.n_speakers))
 		else:
 			raise NotImplementedError('Invalid Generator mode!')
 			
