@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
-	static_setting.add_argument('--remake', type=bool, default=bool(0), help='whether to remake dataset.hdf5')
+	static_setting.add_argument('--remake', type=bool, default=bool(1), help='whether to remake dataset.hdf5')
 	static_setting.add_argument('--g_mode', choices=['naive', 'targeted', 'enhanced', 'set_from_hps'], default='set_from_hps', help='different stage two generator settings')
 	static_setting.add_argument('--enc_mode', choices=['continues', 'one_hot', 'binary', 'multilabel_binary', 'gumbel_t', 'set_from_hps'], default='set_from_hps', help='different output method for the encoder to generate encodings')
 	static_setting.add_argument('--enc_only', type=bool, default=bool(0), help='whether to predict only with stage 1 audoencoder')
@@ -107,12 +107,12 @@ if __name__ == '__main__':
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), model_all=False)
 
 		if args.train:
-			# trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
+			trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
 			# trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
 			# trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
 			
-			trainer.add_duo_loader(source_loader, target_loader)
-			trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
+			# trainer.add_duo_loader(source_loader, target_loader)
+			# trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
 
 	if args.test or args.cross_test or args.test_single:
 
