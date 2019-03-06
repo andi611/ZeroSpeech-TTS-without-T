@@ -141,7 +141,7 @@ class Trainer(object):
 		x_dec = self.Decoder(enc, c)
 		if not enc_only:
 			if verbose: print('Testing with Autoencoder + Generator, encoding: ', enc.data.cpu().numpy())
-			if self.targeted_G and (c - self.testing_shift_c).data.cpu().numpy()[0] not in range(self.hps.n_target_speakers):
+			if self.g_mode != 'naive' and (c - self.testing_shift_c).data.cpu().numpy()[0] not in range(self.hps.n_target_speakers):
 				raise RuntimeError('This generator can only convert to target speakers!')
 			
 			#---select Generator mode---#
