@@ -85,9 +85,23 @@ def asr(fname):
 
 
 def compare_asr(s_wav, t_wav):
-	gt = asr(s_wav)
-	recog = asr(t_wav)
-	return wer(gt, recog), wer(' '.join([c for c in gt if c != ' ']), ' '.join([c for c in recog if c != ' ']))
+	try:
+		gt = asr(s_wav)
+		recog = asr(t_wav)
+		err_result = wer(gt, recog), wer(' '.join([c for c in gt if c != ' ']), ' '.join([c for c in recog if c != ' ']))
+	except sr.UnknownValueError:
+		err_result = [1., 1.]
+	except:
+		err_result = [-1., -1.]
+	return err_result
+
+
+def write_encoding(path):
+	with open(path, 'w') as file:
+		for enc in encodings:
+			for element in enc:
+				file.write(str(int(element)) + ' ')
+			file.write('\n')
 
 
 def convert(trainer,
@@ -119,7 +133,10 @@ def convert(trainer,
 	wav_data = spectrogram2wav(converted_results)
 	if save:
 		wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
+		enc_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.txt')
 		sf.write(wav_path, wav_data, hp.sr, 'PCM_16')
+		write_encoding(enc_path)
+		return wav_path, len(converted_results)
 	else:
 		return wav_data, encodings
 
@@ -141,18 +158,27 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 	print('[Tester] - Number of files to be resynthesize: ', len(feeds))
 	dir_path = os.path.join(result_dir, f'{flag}/')
 	os.makedirs(dir_path, exist_ok=True)
-	print(feeds)
+
+	err_results = []
 	with h5py.File(data_path, 'r') as f_h5:
 		for feed in feeds:
-			convert(trainer,
-					seg_len,
-					src_speaker_spec=f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()], 
-					tar_speaker=feed['t_id'],
-					utt_id=feed['utt_id'],
-					speaker2id=speaker2id,
-					result_dir=dir_path,
-					enc_only=enc_only)
+			# conv_audio, n_frames = convert(trainer,
+			# 					 		   seg_len,
+			# 					 		   src_speaker_spec=f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()], 
+			# 					 		   tar_speaker=feed['t_id'],
+			# 					 		   utt_id=feed['utt_id'],
+			# 					 		   speaker2id=speaker2id,
+			# 					 		   result_dir=dir_path,
+			# 					 		   enc_only=enc_only)
+			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 1.0:
+				orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
+				sf.write('orig_audio.wav', orig_audio, hp.sr, 'PCM_16')
+				# err_results.apppend(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
+				err_results.apppend(compare_asr(s_wav='orig_audio.wav', t_wav='orig_audio.wav'))
+				os.remove(path='orig_audio.wav')
 
+	err_mean = np.mean(err_results, axis=0)
+	print('WERR: {:.3f}  CERR: {:.3f}'.format(err_mean[0], err_mean[1]))
 
 
 def cross_test(trainer, seg_len, data_path, speaker2id_path, result_dir, enc_only, flag):
@@ -218,17 +244,10 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 								  save=False)
 
 	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_16')
-	with open(os.path.join(result_dir, 'result.txt'), 'w') as file:
-		for enc in encodings:
-			for element in enc:
-				file.write(str(int(element)) + ' ')
-			file.write('\n')
-	try:
-		err_result = compare_asr(filename, os.path.join(result_dir, 'result.wav'))
-	except sr.UnknownValueError:
-		err_result = [1., 1.]
-	except:
-		err_result = [-1., -1.]
+	write_encoding(os.path.join(result_dir, 'result.txt'))
+
+	err_result = compare_asr(filename, os.path.join(result_dir, 'result.wav'))
+
 	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, wav_data.shape))
 	print('Comparing ASR result')
 	print('WERR: {:.3f}  CERR: {:.3f}'.format(err_result[0], err_result[1]))
