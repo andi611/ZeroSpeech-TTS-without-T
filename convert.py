@@ -117,7 +117,7 @@ def convert(trainer,
 	if len(src_speaker_spec) < seg_len:
 		padding = np.zeros((seg_len - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
 		src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
-
+	print(np.shape(src_speaker_spec))
 	converted_results = []
 	encodings = []
 	for idx in range(0, len(src_speaker_spec), seg_len):
@@ -161,7 +161,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 
 	err_results = []
 	with h5py.File(data_path, 'r') as f_h5:
-		for feed in feeds:
+		for feed in tqdm(feeds):
 			conv_audio, n_frames = convert(trainer,
 								 		   seg_len,
 								 		   src_speaker_spec=f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()], 
