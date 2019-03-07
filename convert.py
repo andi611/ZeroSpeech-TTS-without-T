@@ -96,7 +96,7 @@ def compare_asr(s_wav, t_wav):
 	return err_result
 
 
-def write_encoding(path):
+def write_encoding(path, encodings):
 	with open(path, 'w') as file:
 		for enc in encodings:
 			for element in enc:
@@ -135,7 +135,7 @@ def convert(trainer,
 		wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
 		enc_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.txt')
 		sf.write(wav_path, wav_data, hp.sr, 'PCM_16')
-		write_encoding(enc_path)
+		write_encoding(enc_path, encodings)
 		return wav_path, len(converted_results)
 	else:
 		return wav_data, encodings
@@ -244,7 +244,7 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 								  save=False)
 
 	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_16')
-	write_encoding(os.path.join(result_dir, 'result.txt'))
+	write_encoding(os.path.join(result_dir, 'result.txt'), encodings)
 
 	err_result = compare_asr(filename, os.path.join(result_dir, 'result.wav'))
 
