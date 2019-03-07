@@ -125,6 +125,7 @@ def convert(trainer,
 			spec_frag = src_speaker_spec[idx:-1]
 		else:
 			spec_frag = src_speaker_spec[idx:idx+seg_len]
+		print(np.shape(spec_frag))
 		converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
 		converted_results.append(converted_x)
 		encodings.append(enc)
