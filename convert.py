@@ -255,6 +255,5 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 	err_result = compare_asr(filename, os.path.join(result_dir, 'result.wav'))
 
 	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, wav_data.shape))
-	print('Comparing ASR result')
-	print('WERR: {:.3f}  CERR: {:.3f}'.format(err_result[0], err_result[1]))
+	print('Comparing ASR result - WERR: {:.3f}  CERR: {:.3f}'.format(err_result[0], err_result[1]))
 
