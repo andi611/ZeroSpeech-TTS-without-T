@@ -17,13 +17,15 @@ import copy
 import torch
 import librosa
 import numpy as np
-from tqdm import tqdm
 import soundfile as sf
+import speech_recognition as sr
+from jiwer import wer
+from tqdm import tqdm
 from scipy import signal
-from torch.autograd import Variable
-from preprocess import get_spectrograms
 from trainer import Trainer
 from hps.hps import hp, Hps
+from torch.autograd import Variable
+from preprocess import get_spectrograms
 
 
 def griffin_lim(spectrogram): # Applies Griffin-Lim's raw.
@@ -74,6 +76,20 @@ def get_trainer(hps_path, model_path, g_mode, enc_mode):
 	return trainer
 
 
+def asr(fname):
+	r = sr.Recognizer()
+	with sr.WavFile(fname) as source:
+		audio = r.listen(source)
+	text = r.recognize_google(audio, language = 'en')
+	return text
+
+
+def compare_asr(s_wav, t_wav):
+	gt = asr(s_wav)
+	recog = asr(t_wav)
+	return wer(gt, recog), wer(' '.join([c for c in gt if c != ' ']), ' '.join([c for c in recog if c != ' ']))
+
+
 def convert(trainer,
 			seg_len,
 			src_speaker_spec, 
@@ -103,7 +119,7 @@ def convert(trainer,
 	wav_data = spectrogram2wav(converted_results)
 	if save:
 		wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
-		sf.write(wav_path, wav_data, hp.sr, 'PCM_24')
+		sf.write(wav_path, wav_data, hp.sr, 'PCM_16')
 	else:
 		return wav_data, encodings
 
@@ -125,7 +141,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 	print('[Tester] - Number of files to be resynthesize: ', len(feeds))
 	dir_path = os.path.join(result_dir, f'{flag}/')
 	os.makedirs(dir_path, exist_ok=True)
-
+	print(feeds)
 	with h5py.File(data_path, 'r') as f_h5:
 		for feed in feeds:
 			convert(trainer,
@@ -201,12 +217,19 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 								  enc_only=enc_only,
 								  save=False)
 
-	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_24')
+	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_16')
 	with open(os.path.join(result_dir, 'result.txt'), 'w') as file:
 		for enc in encodings:
 			for element in enc:
 				file.write(str(int(element)) + ' ')
 			file.write('\n')
-
+	try:
+		err_result = compare_asr(filename, os.path.join(result_dir, 'result.wav'))
+	except sr.UnknownValueError:
+		err_result = [1., 1.]
+	except:
+		err_result = [-1., -1.]
 	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, wav_data.shape))
+	print('Comparing ASR result')
+	print('WERR: {:.3f}  CERR: {:.3f}'.format(err_result[0], err_result[1]))
 
