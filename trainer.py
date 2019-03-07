@@ -109,14 +109,18 @@ class Trainer(object):
 			self.model_kept.pop(0)
 
 
-	def load_model(self, model_path, model_all=True, verbose=True):
+	def load_model(self, model_path, load_model_list, verbose=True):
 		if verbose: print('[Trainer] - load model from {}'.format(model_path))
 		all_model = torch.load(model_path)
-		self.Encoder.load_state_dict(all_model['encoder'])
-		self.Decoder.load_state_dict(all_model['decoder'])
-		self.Generator.load_state_dict(all_model['generator'])
-		if model_all:
+		if 'encoder' in load_model_list:
+			self.Encoder.load_state_dict(all_model['encoder'])
+		if 'decoder' in load_model_list:
+			self.Decoder.load_state_dict(all_model['decoder'])
+		if 'generator' in load_model_list:
+			self.Generator.load_state_dict(all_model['generator'])
+		if 'classifier' in load_model_list:
 			self.SpeakerClassifier.load_state_dict(all_model['classifier'])
+		if 'patch_discriminator' in load_model_list:
 			self.PatchDiscriminator.load_state_dict(all_model['patch_discriminator'])
 
 

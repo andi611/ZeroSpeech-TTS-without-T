@@ -39,6 +39,7 @@ class Hps(object):
 		self.hps = namedtuple('hps', [
 			'g_mode',
 			'enc_mode',
+			'load_model_list',
 			'lr',
 			'alpha_dis',
 			'alpha_enc',

@@ -70,7 +70,7 @@ def get_trainer(hps_path, model_path, g_mode, enc_mode):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
 	trainer = Trainer(hps, None, g_mode, enc_mode)
-	trainer.load_model(model_path, model_all=False)
+	trainer.load_model(model_path, load_model_list = hps.load_model_list)
 	return trainer
 
 

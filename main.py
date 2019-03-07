@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
 		#---initialize trainer---#
 		trainer = Trainer(hps, data_loader, args.g_mode, args.enc_mode)
-		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), model_all=False)
+		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), load_model_list=hps.load_model_list)
 
 		if args.train:
 			trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
