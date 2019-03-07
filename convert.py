@@ -180,7 +180,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 1.0:
 				orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
 				sf.write('orig_audio.wav', orig_audio, hp.sr, 'PCM_16')
-				err_results.apppend(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
+				err_results.append(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
 				os.remove(path='orig_audio.wav')
 
 	err_mean = np.mean(err_results, axis=0)
