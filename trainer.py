@@ -73,6 +73,8 @@ class Trainer(object):
 			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		elif self.g_mode == 'enhanced':
 			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=1024, emb_size=1024, seg_len=seg_len, n_speakers=hps.n_speakers))
+		elif self.g_mode == 'spectrogram':
+			self.Generator = cc(Decoder(ns=ns, c_in=513, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		else:
 			raise NotImplementedError('Invalid Generator mode!')
 			
@@ -153,7 +155,7 @@ class Trainer(object):
 				x_dec += self.Generator(enc, c)
 			elif self.g_mode == 'targeted':
 				x_dec += self.Generator(enc, c - self.testing_shift_c)
-			elif self.g_mode == 'enhanced':
+			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
 			else:
 				raise NotImplementedError('Invalid Generator mode!')
@@ -203,7 +205,7 @@ class Trainer(object):
 			x_gen = x_dec + self.Generator(enc, c)
 		elif self.g_mode == 'targeted':
 			x_gen = x_dec + self.Generator(enc, c - self.shift_c)
-		elif self.g_mode == 'enhanced':
+		elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 			x_gen = x_dec + self.Generator(x_dec, c - self.shift_c)
 		return x_gen 
 
