@@ -302,7 +302,7 @@ class Decoder(nn.Module):
 		out = linear(out, self.dense5)
 		out = F.leaky_relu(out, negative_slope=self.ns)
 		out = linear(out, self.linear)
-		out = nn.Sigmoid(out)
+		out = F.sigmoid(out)
 		return out
 
 
