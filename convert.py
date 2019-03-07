@@ -170,6 +170,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 			# 					 		   speaker2id=speaker2id,
 			# 					 		   result_dir=dir_path,
 			# 					 		   enc_only=enc_only)
+			n_frames = len(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
 			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 1.0:
 				orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
 				sf.write('orig_audio.wav', orig_audio, hp.sr, 'PCM_16')
@@ -178,7 +179,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 				os.remove(path='orig_audio.wav')
 
 	err_mean = np.mean(err_results, axis=0)
-	print('WERR: {:.3f}  CERR: {:.3f}'.format(err_mean[0], err_mean[1]))
+	print('WERR: {:.3f}  CERR: {:.3f}, computed over {} samples'.format(err_mean[0], err_mean[1], len(err_results)))
 
 
 def cross_test(trainer, seg_len, data_path, speaker2id_path, result_dir, enc_only, flag):
