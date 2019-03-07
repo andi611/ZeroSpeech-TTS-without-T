@@ -117,7 +117,7 @@ def convert(trainer,
 	if len(src_speaker_spec) < seg_len:
 		padding = np.zeros((seg_len - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
 		src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
-	print(np.shape(src_speaker_spec))
+
 	converted_results = []
 	encodings = []
 	for idx in range(0, len(src_speaker_spec), seg_len):
@@ -125,10 +125,13 @@ def convert(trainer,
 			spec_frag = src_speaker_spec[idx:-1]
 		else:
 			spec_frag = src_speaker_spec[idx:idx+seg_len]
-		print(np.shape(spec_frag))
-		converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
-		converted_results.append(converted_x)
-		encodings.append(enc)
+
+		if len(spec_frag) >= seg_len:
+			converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
+			converted_results.append(converted_x)
+			encodings.append(enc)
+		elif idx == 0:
+			raise RuntimeError('Please check if input is too short!')
 
 	converted_results = np.concatenate(converted_results, axis=0)
 	encodings = np.concatenate(encodings, axis=0)
