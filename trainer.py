@@ -200,6 +200,7 @@ class Trainer(object):
 
 
 	def gen_step(self, enc, c):
+		print(enc.size())
 		x_dec = self.Decoder(enc, c)
 		if self.g_mode == 'naive':
 			x_gen = x_dec + self.Generator(enc, c)
