@@ -21,7 +21,7 @@ from torch.autograd import Variable
 from model import Encoder, Decoder
 from model import SpeakerClassifier
 from model import PatchDiscriminator
-from model import Enhanced_Generator
+from model import Enhanced_Generator, Patcher
 from utils import Logger, cc, to_var
 from utils import grad_clip, reset_grad
 from utils import calculate_gradients_penalty
@@ -74,7 +74,7 @@ class Trainer(object):
 		elif self.g_mode == 'enhanced':
 			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=1024, emb_size=1024, seg_len=seg_len, n_speakers=hps.n_speakers))
 		elif self.g_mode == 'spectrogram':
-			self.Generator = cc(Decoder(ns=ns, c_in=513, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len, upsample=False))
+			self.Generator = cc(Patcher(ns=ns, c_in=513, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		else:
 			raise NotImplementedError('Invalid Generator mode!')
 			

@@ -226,41 +226,36 @@ class SpeakerClassifier(nn.Module):
 
 
 class Decoder(nn.Module):
-	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64, upsample=True):
+	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64):
 		super(Decoder, self).__init__()
 		self.ns = ns
 		self.seg_len = seg_len
-		self.upsample = upsample
-		self.conv1 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
-		self.conv2 = nn.Conv1d(c_h if upsample else c_h//2, c_h if upsample else c_h//2, kernel_size=3)
-		self.conv3 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
-		self.conv4 = nn.Conv1d(c_h if upsample else c_h//2, c_h if upsample else c_h//2, kernel_size=3)
-		self.conv5 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
-		self.conv6 = nn.Conv1d(c_h if upsample else c_h//2, c_h if upsample else c_h//2, kernel_size=3)
-		self.dense1 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
-		self.dense2 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
-		self.dense3 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
-		self.dense4 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
-		self.RNN = nn.GRU(input_size=c_h if upsample else c_h//2, hidden_size=c_h//2 if upsample else c_h//4, num_layers=1, bidirectional=True)
-		if upsample:
-			self.dense5 = nn.Linear(2*c_h + c_h, c_h)
-		else:
-			self.dense5 = nn.Linear(2*(c_h//2) + c_h//2, c_h//2)
-		self.linear = nn.Linear(c_h if upsample else c_h//2, c_out)
+		self.conv1 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
+		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=3)
+		self.conv3 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
+		self.conv4 = nn.Conv1d(c_h, c_h, kernel_size=3)
+		self.conv5 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
+		self.conv6 = nn.Conv1d(c_h, c_h, kernel_size=3)
+		self.dense1 = nn.Linear(c_h, c_h)
+		self.dense2 = nn.Linear(c_h, c_h)
+		self.dense3 = nn.Linear(c_h, c_h)
+		self.dense4 = nn.Linear(c_h, c_h)
+		self.RNN = nn.GRU(input_size=c_h, hidden_size=c_h//2, num_layers=1, bidirectional=True)
+		self.dense5 = nn.Linear(2*c_h + c_h, c_h)
+		self.linear = nn.Linear(c_h, c_out)
 		# normalization layer
 		self.ins_norm1 = nn.InstanceNorm1d(c_h)
 		self.ins_norm2 = nn.InstanceNorm1d(c_h)
 		self.ins_norm3 = nn.InstanceNorm1d(c_h)
 		self.ins_norm4 = nn.InstanceNorm1d(c_h)
 		self.ins_norm5 = nn.InstanceNorm1d(c_h)
-		
 		# embedding layer
-		self.input_emb = nn.Linear(c_in, c_h if upsample else c_h//2)
+		self.input_emb = nn.Linear(c_in, c_h)
 		self.emb1 = nn.Embedding(c_a, c_h)
 		self.emb2 = nn.Embedding(c_a, c_h)
 		self.emb3 = nn.Embedding(c_a, c_h)
-		self.emb4 = nn.Embedding(c_a, c_h if upsample else c_h//2)
-		self.emb5 = nn.Embedding(c_a, c_h if upsample else c_h//2)
+		self.emb4 = nn.Embedding(c_a, c_h)
+		self.emb5 = nn.Embedding(c_a, c_h)
 
 	def conv_block(self, x, conv_layers, norm_layer, emb, res=True):
 		# first layer
@@ -268,7 +263,7 @@ class Decoder(nn.Module):
 		out = pad_layer(x_add, conv_layers[0], self.seg_len)
 		out = F.leaky_relu(out, negative_slope=self.ns)
 		# upsample by pixelshuffle
-		out = pixel_shuffle_1d(out, upscale_factor=2 if self.upsample else 1)
+		out = pixel_shuffle_1d(out, upscale_factor=2)
 		out = out + emb.view(emb.size(0), emb.size(1), 1)
 		out = pad_layer(out, conv_layers[1], self.seg_len)
 		out = F.leaky_relu(out, negative_slope=self.ns)
@@ -292,7 +287,6 @@ class Decoder(nn.Module):
 	def forward(self, x, c):
 		# conv layer
 		out = self.conv_block(linear(x, self.input_emb), [self.conv1, self.conv2], self.ins_norm1, self.emb1(c), res=True)
-		print('1', out.size())
 		out = self.conv_block(out, [self.conv3, self.conv4], self.ins_norm2, self.emb2(c), res=True)
 		out = self.conv_block(out, [self.conv5, self.conv6], self.ins_norm3, self.emb3(c), res=True)
 		# dense layer
@@ -300,14 +294,11 @@ class Decoder(nn.Module):
 		out = self.dense_block(out, self.emb4(c), [self.dense3, self.dense4], self.ins_norm5, res=True)
 		emb = self.emb5(c)
 		out_add = out + emb.view(emb.size(0), emb.size(1), 1)
-		print('out_add', out_add.size())
 		# rnn layer
 		out_rnn = RNN(out_add, self.RNN)
-		print('out_rnn', out_rnn.size())
 		out = torch.cat([out, out_rnn], dim=1)
 		out = append_emb(self.emb5(c), out.size(2), out)
 		out = linear(out, self.dense5)
-		print('out', out.size())
 		out = F.leaky_relu(out, negative_slope=self.ns)
 		out = linear(out, self.linear)
 		out = torch.sigmoid(out)
@@ -449,3 +440,53 @@ class Enhanced_Generator(nn.Module):
 		enc_act, enc = self.Encoder(x)
 		x_dec = self.Decoder(enc_act, c)
 		return x_dec
+
+
+class Patcher(nn.Module):
+	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64):
+		super(Patcher, self).__init__()
+		self.ns = ns
+		self.seg_len = seg_len
+		self.input_layer = nn.Linear(c_in, c_h)
+		self.dense1 = nn.Linear(c_h, c_h)
+		self.dense2 = nn.Linear(c_h, c_h)
+		self.dense3 = nn.Linear(c_h, c_h)
+		self.dense4 = nn.Linear(c_h, c_h)
+		self.RNN = nn.GRU(input_size=c_h, hidden_size=c_h//2, num_layers=1, bidirectional=True)
+		self.dense5 = nn.Linear(2*c_h + c_h, c_h)
+		self.linear = nn.Linear(c_h, c_out)
+		# normalization layer
+		self.ins_norm1 = nn.InstanceNorm1d(c_h)
+		self.ins_norm2 = nn.InstanceNorm1d(c_h)
+		# embedding layer
+		self.emb1 = nn.Embedding(c_a, c_h)
+		self.emb2 = nn.Embedding(c_a, c_h)
+
+	def dense_block(self, x, emb, layers, norm_layer, res=True):
+		out = x
+		for layer in layers:
+			out = out + emb.view(emb.size(0), emb.size(1), 1)
+			out = linear(out, layer)
+			out = F.leaky_relu(out, negative_slope=self.ns)
+		out = norm_layer(out)
+		if res:
+			out = out + x
+		return out
+
+	def forward(self, x, c):
+		# input layer
+		out = linear(x, self.input_emb)
+		# dense layer
+		out = self.dense_block(out, self.emb1(c), [self.dense1, self.dense2], self.ins_norm1, res=True)
+		out = self.dense_block(out, self.emb1(c), [self.dense3, self.dense4], self.ins_norm2, res=True)
+		emb = self.emb2(c)
+		out_add = out + emb.view(emb.size(0), emb.size(1), 1)
+		# rnn layer
+		out_rnn = RNN(out_add, self.RNN)
+		out = torch.cat([out, out_rnn], dim=1)
+		out = append_emb(self.emb2(c), out.size(2), out)
+		out = linear(out, self.dense5)
+		out = F.leaky_relu(out, negative_slope=self.ns)
+		out = linear(out, self.linear)
+		out = torch.sigmoid(out)
+		return out		
