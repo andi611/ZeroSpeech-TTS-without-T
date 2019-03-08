@@ -291,6 +291,7 @@ class Decoder(nn.Module):
 	def forward(self, x, c):
 		# conv layer
 		out = self.conv_block(linear(x, self.input_emb), [self.conv1, self.conv2], self.ins_norm1, self.emb1(c), res=True)
+		print('1', out.size())
 		out = self.conv_block(out, [self.conv3, self.conv4], self.ins_norm2, self.emb2(c), res=True)
 		out = self.conv_block(out, [self.conv5, self.conv6], self.ins_norm3, self.emb3(c), res=True)
 		# dense layer
