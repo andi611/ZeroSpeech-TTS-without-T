@@ -252,9 +252,9 @@ class Decoder(nn.Module):
 		# embedding layer
 
 		self.input_emb = nn.Linear(c_in, c_h)
-		self.emb1 = nn.Embedding(c_a, c_h)
-		self.emb2 = nn.Embedding(c_a, c_h)
-		self.emb3 = nn.Embedding(c_a, c_h)
+		self.emb1 = nn.Embedding(c_a, c_h if upsample else c_h//2)
+		self.emb2 = nn.Embedding(c_a, c_h if upsample else c_h//2)
+		self.emb3 = nn.Embedding(c_a, c_h if upsample else c_h//2)
 		self.emb4 = nn.Embedding(c_a, c_h)
 		self.emb5 = nn.Embedding(c_a, c_h)
 
