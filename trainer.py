@@ -200,17 +200,13 @@ class Trainer(object):
 
 
 	def gen_step(self, enc, c):
-		print(enc.size())
 		x_dec = self.Decoder(enc, c)
 		if self.g_mode == 'naive':
 			x_gen = x_dec + self.Generator(enc, c)
 		elif self.g_mode == 'targeted':
 			x_gen = x_dec + self.Generator(enc, c - self.shift_c)
 		elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
-			print(x_dec.size())
-			new = self.Generator(x_dec, c - self.shift_c)
-			print(new.size())
-			x_gen = x_dec + new
+			x_gen = x_dec + self.Generator(x_dec, c - self.shift_c)
 		return x_gen 
 
 
