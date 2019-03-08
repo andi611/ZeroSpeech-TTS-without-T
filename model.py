@@ -251,7 +251,7 @@ class Decoder(nn.Module):
 		self.ins_norm5 = nn.InstanceNorm1d(c_h)
 		# embedding layer
 
-		self.input_emb = nn.Linear(c_in, c_h)
+		self.input_emb = nn.Linear(c_in, c_h if upsample else c_h//2)
 		self.emb1 = nn.Embedding(c_a, c_h if upsample else c_h//2)
 		self.emb2 = nn.Embedding(c_a, c_h if upsample else c_h//2)
 		self.emb3 = nn.Embedding(c_a, c_h if upsample else c_h//2)
