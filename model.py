@@ -475,7 +475,7 @@ class Patcher(nn.Module):
 
 	def forward(self, x, c):
 		# input layer
-		out = linear(x, self.input_emb)
+		out = linear(x, self.input_layer)
 		# dense layer
 		out = self.dense_block(out, self.emb1(c), [self.dense1, self.dense2], self.ins_norm1, res=True)
 		out = self.dense_block(out, self.emb1(c), [self.dense3, self.dense4], self.ins_norm2, res=True)
