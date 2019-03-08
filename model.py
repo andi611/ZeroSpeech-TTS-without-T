@@ -240,7 +240,7 @@ class Decoder(nn.Module):
 		self.dense2 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
 		self.dense3 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
 		self.dense4 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
-		self.RNN = nn.GRU(input_size=c_h, hidden_size=c_h//2, num_layers=1, bidirectional=True)
+		self.RNN = nn.GRU(input_size=c_h if upsample else c_h//2, hidden_size=c_h//2, num_layers=1, bidirectional=True)
 		if upsample:
 			self.dense5 = nn.Linear(2*c_h + c_h, c_h)
 		else:
@@ -252,8 +252,8 @@ class Decoder(nn.Module):
 		self.ins_norm3 = nn.InstanceNorm1d(c_h)
 		self.ins_norm4 = nn.InstanceNorm1d(c_h)
 		self.ins_norm5 = nn.InstanceNorm1d(c_h)
+		
 		# embedding layer
-
 		self.input_emb = nn.Linear(c_in, c_h if upsample else c_h//2)
 		self.emb1 = nn.Embedding(c_a, c_h if upsample else c_h//2)
 		self.emb2 = nn.Embedding(c_a, c_h if upsample else c_h//2)
