@@ -255,8 +255,8 @@ class Decoder(nn.Module):
 		self.emb1 = nn.Embedding(c_a, c_h if upsample else c_h//2)
 		self.emb2 = nn.Embedding(c_a, c_h if upsample else c_h//2)
 		self.emb3 = nn.Embedding(c_a, c_h if upsample else c_h//2)
-		self.emb4 = nn.Embedding(c_a, c_h)
-		self.emb5 = nn.Embedding(c_a, c_h)
+		self.emb4 = nn.Embedding(c_a, c_h if upsample else c_h//2)
+		self.emb5 = nn.Embedding(c_a, c_h if upsample else c_h//2)
 
 	def conv_block(self, x, conv_layers, norm_layer, emb, res=True):
 		# first layer
