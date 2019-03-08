@@ -236,13 +236,16 @@ class Decoder(nn.Module):
 		self.conv4 = nn.Conv1d(c_h if upsample else c_h//2, c_h if upsample else c_h//2, kernel_size=3)
 		self.conv5 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
 		self.conv6 = nn.Conv1d(c_h if upsample else c_h//2, c_h if upsample else c_h//2, kernel_size=3)
-		self.dense1 = nn.Linear(c_h, c_h)
-		self.dense2 = nn.Linear(c_h, c_h)
-		self.dense3 = nn.Linear(c_h, c_h)
-		self.dense4 = nn.Linear(c_h, c_h)
+		self.dense1 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
+		self.dense2 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
+		self.dense3 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
+		self.dense4 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
 		self.RNN = nn.GRU(input_size=c_h, hidden_size=c_h//2, num_layers=1, bidirectional=True)
-		self.dense5 = nn.Linear(2*c_h + c_h, c_h)
-		self.linear = nn.Linear(c_h, c_out)
+		if upsample:
+			self.dense5 = nn.Linear(2*c_h + c_h, c_h)
+		else:
+			self.dense5 = nn.Linear(2*(c_h//2) + c_h//2, c_h//2)
+		self.linear = nn.Linear(c_h if upsample else c_h//2, c_out)
 		# normalization layer
 		self.ins_norm1 = nn.InstanceNorm1d(c_h)
 		self.ins_norm2 = nn.InstanceNorm1d(c_h)
