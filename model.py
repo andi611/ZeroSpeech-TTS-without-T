@@ -240,7 +240,7 @@ class Decoder(nn.Module):
 		self.dense2 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
 		self.dense3 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
 		self.dense4 = nn.Linear(c_h if upsample else c_h//2, c_h if upsample else c_h//2)
-		self.RNN = nn.GRU(input_size=c_h if upsample else c_h//2, hidden_size=c_h//2, num_layers=1, bidirectional=True)
+		self.RNN = nn.GRU(input_size=c_h if upsample else c_h//2, hidden_size=c_h//2 if upsample else c_h//4, num_layers=1, bidirectional=True)
 		if upsample:
 			self.dense5 = nn.Linear(2*c_h + c_h, c_h)
 		else:
