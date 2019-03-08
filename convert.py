@@ -295,19 +295,14 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 		logits = np.concatenate(logits, axis=0)
 		logits = np.sum(logits, axis = 0)
 		
-		if logits[0] >= logits[1]*2:
+		if logits[0] >= logits[1]:
 			clf_speaker = 'V001'
-		elif logits[1] > logits[0]*2:
+		elif logits[1] > logits[0]:
 			clf_speaker = 'V002'
-		else:
-			clf_speaker = 'unknown'
 		
 		if clf_speaker == tar_speaker:
 			acc.append(1)
 			#print('[info]: {} is classified to {}'.format(wav_path, clf_speaker), end = '');print(spec.shape)
-		elif clf_speaker == 'unknown':
-			acc.append(0)
-			#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
 		else:
 			acc.append(0)
 			#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
