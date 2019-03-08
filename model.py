@@ -230,11 +230,11 @@ class Decoder(nn.Module):
 		super(Decoder, self).__init__()
 		self.ns = ns
 		self.seg_len = seg_len
-		self.conv1 = nn.Conv1d(c_h, 2*c_h if upsample else c_h, kernel_size=3)
+		self.conv1 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
 		self.conv2 = nn.Conv1d(c_h, c_h, kernel_size=3)
-		self.conv3 = nn.Conv1d(c_h, 2*c_h if upsample else c_h, kernel_size=3)
+		self.conv3 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
 		self.conv4 = nn.Conv1d(c_h, c_h, kernel_size=3)
-		self.conv5 = nn.Conv1d(c_h, 2*c_h if upsample else c_h, kernel_size=3)
+		self.conv5 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
 		self.conv6 = nn.Conv1d(c_h, c_h, kernel_size=3)
 		self.dense1 = nn.Linear(c_h, c_h)
 		self.dense2 = nn.Linear(c_h, c_h)
