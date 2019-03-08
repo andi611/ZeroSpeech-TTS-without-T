@@ -173,6 +173,61 @@ class PatchDiscriminator(nn.Module):
 			return mean_val
 
 
+class TargetClassifier(nn.Module):
+	def __init__(self, n_class=2, ns=0.2, dp=0.1, seg_len=128):
+		super(TargetClassifier, self).__init__()
+		self.ns = ns
+		self.seg_len = seg_len
+		self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=2)
+		self.conv2 = nn.Conv2d(64, 128, kernel_size=5, stride=2)
+		self.conv3 = nn.Conv2d(128, 256, kernel_size=5, stride=2)
+		self.conv4 = nn.Conv2d(256, 512, kernel_size=5, stride=2)
+		self.conv5 = nn.Conv2d(512, 512, kernel_size=5, stride=2)
+		self.conv6 = nn.Conv2d(512, 32, kernel_size=1)
+		if self.seg_len == 128:
+			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 4))
+			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 4))
+		elif self.seg_len == 64:
+			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 2))
+			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 2))
+		elif self.seg_len == 32:
+			self.conv7 = nn.Conv2d(32, 1, kernel_size=(17, 1))
+			self.conv_classify = nn.Conv2d(32, n_class, kernel_size=(17, 1))
+		else:
+			raise NotImplementedError('Segement length {} is not supported!'.format(seg_len))
+		self.drop1 = nn.Dropout2d(p=dp)
+		self.drop2 = nn.Dropout2d(p=dp)
+		self.drop3 = nn.Dropout2d(p=dp)
+		self.drop4 = nn.Dropout2d(p=dp)
+		self.drop5 = nn.Dropout2d(p=dp)
+		self.drop6 = nn.Dropout2d(p=dp)
+		self.ins_norm1 = nn.InstanceNorm2d(self.conv1.out_channels)
+		self.ins_norm2 = nn.InstanceNorm2d(self.conv2.out_channels)
+		self.ins_norm3 = nn.InstanceNorm2d(self.conv3.out_channels)
+		self.ins_norm4 = nn.InstanceNorm2d(self.conv4.out_channels)
+		self.ins_norm5 = nn.InstanceNorm2d(self.conv5.out_channels)
+		self.ins_norm6 = nn.InstanceNorm2d(self.conv6.out_channels)
+
+	def conv_block(self, x, conv_layer, after_layers):
+		out = pad_layer(x, conv_layer, self.seg_len, is_2d=True)
+		out = F.leaky_relu(out, negative_slope=self.ns)
+		for layer in after_layers:
+			out = layer(out)
+		return out 
+
+	def forward(self, x):
+		x = torch.unsqueeze(x, dim=1)
+		out = self.conv_block(x, self.conv1, [self.ins_norm1, self.drop1])
+		out = self.conv_block(out, self.conv2, [self.ins_norm2, self.drop2])
+		out = self.conv_block(out, self.conv3, [self.ins_norm3, self.drop3])
+		out = self.conv_block(out, self.conv4, [self.ins_norm4, self.drop4])
+		out = self.conv_block(out, self.conv5, [self.ins_norm5, self.drop5])
+		out = self.conv_block(out, self.conv6, [self.ins_norm6, self.drop6])
+		logits = self.conv_classify(out)
+		logits = logits.view(logits.size(0), -1)
+		return logits
+
+
 class SpeakerClassifier(nn.Module):
 	def __init__(self, c_in=512, c_h=512, n_class=8, dp=0.1, ns=0.01, seg_len=128):
 		super(SpeakerClassifier, self).__init__()

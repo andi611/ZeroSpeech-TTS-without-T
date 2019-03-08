@@ -19,6 +19,7 @@ from torch import nn
 from torch import optim
 from torch.autograd import Variable
 from model import Encoder, Decoder
+from model import TargetClassifier
 from model import SpeakerClassifier
 from model import PatchDiscriminator
 from model import Enhanced_Generator, Patcher
@@ -85,6 +86,13 @@ class Trainer(object):
 		#---stage two opts---#
 		self.gen_opt = optim.Adam(self.Generator.parameters(), lr=self.hps.lr, betas=betas)
 		self.patch_opt = optim.Adam(self.PatchDiscriminator.parameters(), lr=self.hps.lr, betas=betas)
+		
+		
+		#---target classifier---#
+		self.TargetClassifier = cc(nn.DataParallel(TargetClassifier(ns=ns, n_class=2, seg_len=seg_len)))
+		
+		#---target classifier opts---#
+		self.tclf_opt = optim.Adam(self.TargetClassifier.parameters(), lr=self.hps.lr, betas=betas)
 
 
 	def save_model(self, model_path, name, iteration, model_all=True):
@@ -95,6 +103,7 @@ class Trainer(object):
 				'generator': self.Generator.state_dict(),
 				'classifier': self.SpeakerClassifier.state_dict(),
 				'patch_discriminator': self.PatchDiscriminator.state_dict(),
+				'target_classifier': self.TargetClassifier.state_dict(),
 			}
 		else:
 			all_model = {
@@ -124,6 +133,8 @@ class Trainer(object):
 			self.SpeakerClassifier.load_state_dict(all_model['classifier'])
 		if 'patch_discriminator' in load_model_list:
 			self.PatchDiscriminator.load_state_dict(all_model['patch_discriminator'])
+		if 'target_classifier' in load_model_list:
+			self.TargetClassifier.load_state_dict(all_model['target_classifier'])
 
 
 	def add_duo_loader(self, source_loader, target_loader):
@@ -138,6 +149,7 @@ class Trainer(object):
 		self.Generator.eval()
 		self.SpeakerClassifier.eval()
 		self.PatchDiscriminator.eval()
+		self.TargetClassifier.eval()
 
 
 	def test_step(self, x, c, enc_only=False, verbose=True):
@@ -163,6 +175,13 @@ class Trainer(object):
 			if verbose: print('Testing with Autoencoder only, encoding: ', enc.data.cpu().numpy())
 		return x_dec.data.cpu().numpy(), enc.data.cpu().numpy()
 
+		
+	def classify(self, x):
+		self.set_eval()
+		x = to_var(x).permute(0, 2, 1)
+		logits = self.TargetClassifier(x)
+		return logits.detach().cpu().numpy()
+		
 
 	def permute_data(self, data):
 		C = to_var(data[0], requires_grad=False)
@@ -197,7 +216,11 @@ class Trainer(object):
 			return w_dis, real_logits, gp
 		else:
 			return -torch.mean(D_fake), fake_logits
-
+	
+	def tclf_step(self, x):
+		logits = self.TargetClassifier(x)
+		return logits
+	
 
 	def gen_step(self, enc, c):
 		x_dec = self.Decoder(enc, c)
@@ -473,6 +496,37 @@ class Trainer(object):
 						self.logger.scalar_summary(tag, value, iteration + 1)
 				if (iteration + 1) % 1000 == 0:
 					self.save_model(model_path, 's2', iteration + 1)
+			print()
+		
+		elif mode == 't_classify':
+			for iteration in range(hps.tclf_iters):
+			#======train target classifier======#					
+				data_t = next(self.target_loader)
+				c, x_t = self.permute_data(data_t)
+				
+				# classification
+				logits = self.tclf_step(x_t)
+				# classification loss 
+				loss = self.cal_loss(logits, c-self.shift_c)
+				reset_grad([self.TargetClassifier])
+				loss.backward()
+				grad_clip([self.TargetClassifier], self.hps.max_grad_norm)
+				self.tclf_opt.step()
+				
+				# calculate acc
+				acc = self.cal_acc(logits, c-self.shift_c)
+				info = {
+					f'{flag}/acc': acc,
+				}
+				slot_value = (iteration+1, hps.tclf_iters) + tuple([value for value in info.values()])
+				log = 'Target Classifier:[%05d/%05d], acc=%.2f'
+				print(log % slot_value, end='\r')
+				
+				if iteration % 100 == 0:
+					for tag, value in info.items():
+						self.logger.scalar_summary(tag, value, iteration + 1)
+				if (iteration + 1) % 1000 == 0:
+					self.save_model(model_path, 'tclf', iteration + 1)
 			print()
 		
 		else: 

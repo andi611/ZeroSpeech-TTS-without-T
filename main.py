@@ -15,7 +15,7 @@ import argparse
 from hps.hps import Hps
 from trainer import Trainer
 from preprocess import preprocess
-from convert import test_from_list, cross_test, test_single, get_trainer
+from convert import test_from_list, cross_test, test_single, target_classify, get_trainer
 from dataloader import Dataset, DataLoader
 
 
@@ -27,6 +27,7 @@ if __name__ == '__main__':
 	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on the testing list provided at --synthesis_list')
 	parser.add_argument('--cross_test', default=False, action='store_true', help='test the trained model on all testing files')
 	parser.add_argument('--test_single', default=False, action='store_true', help='test the trained model on a single file')
+	parser.add_argument('--t_classify', default=False, action='store_true', help='classify speakers on all testing files')
 	parser.add_argument('--load_model', default=False, action='store_true', help='whether to load training session from previous checkpoints')
 
 	static_setting = parser.add_argument_group('static_setting')
@@ -112,9 +113,11 @@ if __name__ == '__main__':
 			# trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
 			
 			trainer.add_duo_loader(source_loader, target_loader)
-			trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
+			# trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
+			
+			trainer.train(model_path, args.flag, mode='t_classify') # Target speaker classifier training
 
-	if args.test or args.cross_test or args.test_single:
+	if args.test or args.cross_test or args.test_single or args.t_classify:
 
 		os.makedirs(args.result_dir, exist_ok=True)
 		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
@@ -127,4 +130,6 @@ if __name__ == '__main__':
 			cross_test(trainer, hps.seg_len, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, flag='test')
 		if args.test_single:
 			test_single(trainer, hps.seg_len, args.speaker2id_path, args.result_dir, args.enc_only, args.s_speaker, args.t_speaker)
+		if args.t_classify:
+			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
 

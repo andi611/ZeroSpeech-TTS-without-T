@@ -66,6 +66,7 @@ class Hps(object):
 			'dis_pretrain_iters',
 			'patch_iters', 
 			'iters',
+			'tclf_iters',
 			'max_to_keep',
 			]
 		)

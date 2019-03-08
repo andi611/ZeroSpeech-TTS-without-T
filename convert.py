@@ -257,3 +257,60 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 	print('Testing on source speaker {} and target speaker {}, output shape: {}'.format(s_speaker, t_speaker, wav_data.shape))
 	print('Comparing ASR result - WERR: {:.3f}  CERR: {:.3f}'.format(err_result[0], err_result[1]))
 
+
+def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
+	dir_path = os.path.join(result_dir, f'{flag}/')
+	with open(synthesis_list, 'r') as f:
+		file = f.readlines()
+	acc = []
+	for line in file:
+		# get wav path
+		line = line.split('\n')[0].split(' ')
+		utt_id = line[0].split('/')[1].split('_')[1]
+		tar_speaker = line[1]
+		wav_path = os.path.join(dir_path, f'{tar_speaker}_{utt_id}.wav')
+		
+		# get spectrogram
+		_, spec = get_spectrograms(wav_path)
+		
+		# padding spec
+		if len(spec) < seg_len:
+			padding = np.zeros((seg_len - spec.shape[0], spec.shape[1]))
+			spec = np.concatenate((spec, padding), axis=0)
+		
+		# classification
+		logits = []
+		for idx in range(0, len(spec), seg_len):
+			if idx + (seg_len*2) > len(spec):
+				spec_frag = spec[idx:-1]
+			else:
+				spec_frag = spec[idx:idx+seg_len]
+
+			if len(spec_frag) >= seg_len:
+				x = torch.from_numpy(np.expand_dims(spec_frag[:seg_len, :], axis=0)).type(torch.FloatTensor)
+				logit = trainer.classify(x)
+				logits.append(logit)
+			elif idx == 0:
+				raise RuntimeError('Please check if input is too short!')
+		logits = np.concatenate(logits, axis=0)
+		logits = np.sum(logits, axis = 0)
+		
+		if logits[0] >= logits[1]*2:
+			clf_speaker = 'V001'
+		elif logits[1] > logits[0]*2:
+			clf_speaker = 'V002'
+		else:
+			clf_speaker = 'unknown'
+		
+		if clf_speaker == tar_speaker:
+			acc.append(1)
+			#print('[info]: {} is classified to {}'.format(wav_path, clf_speaker), end = '');print(spec.shape)
+		elif clf_speaker == 'unknown':
+			acc.append(0)
+			#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
+		else:
+			acc.append(0)
+			#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
+	print('Classification Acc: {:.3f}'.format(np.sum(acc)/len(acc)))
+	
+	
