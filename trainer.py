@@ -206,6 +206,7 @@ class Trainer(object):
 		elif self.g_mode == 'targeted':
 			x_gen = x_dec + self.Generator(enc, c - self.shift_c)
 		elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
+			print(x_dec.size())
 			x_gen = x_dec + self.Generator(x_dec, c - self.shift_c)
 		return x_gen 
 
