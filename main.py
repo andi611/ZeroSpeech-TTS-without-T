@@ -34,7 +34,7 @@ if __name__ == '__main__':
 	static_setting.add_argument('--remake', type=bool, default=bool(1), help='whether to remake dataset.hdf5')
 	static_setting.add_argument('--g_mode', choices=['naive', 'targeted', 'enhanced', 'spectrogram', 'set_from_hps'], default='set_from_hps', help='different stage two generator settings')
 	static_setting.add_argument('--enc_mode', choices=['continues', 'one_hot', 'binary', 'multilabel_binary', 'gumbel_t', 'set_from_hps'], default='set_from_hps', help='different output method for the encoder to generate encodings')
-	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
+	static_setting.add_argument('--enc_only', type=bool, default=bool(0), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V002', help='for the --test_single mode, set voice convergence target speaker')
 	
