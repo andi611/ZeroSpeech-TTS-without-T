@@ -230,6 +230,7 @@ class Decoder(nn.Module):
 		super(Decoder, self).__init__()
 		self.ns = ns
 		self.seg_len = seg_len
+		self.upsample = upsample
 		self.conv1 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
 		self.conv2 = nn.Conv1d(c_h if upsample else c_h//2, c_h if upsample else c_h//2, kernel_size=3)
 		self.conv3 = nn.Conv1d(c_h if upsample else c_h//2, 2*c_h if upsample else c_h, kernel_size=3)
@@ -267,7 +268,7 @@ class Decoder(nn.Module):
 		out = pad_layer(x_add, conv_layers[0], self.seg_len)
 		out = F.leaky_relu(out, negative_slope=self.ns)
 		# upsample by pixelshuffle
-		out = pixel_shuffle_1d(out, upscale_factor=2)
+		out = pixel_shuffle_1d(out, upscale_factor=2 if self.upsample else 1)
 		out = out + emb.view(emb.size(0), emb.size(1), 1)
 		out = pad_layer(out, conv_layers[1], self.seg_len)
 		out = F.leaky_relu(out, negative_slope=self.ns)
