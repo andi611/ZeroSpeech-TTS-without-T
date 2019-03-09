@@ -177,7 +177,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 								 		   result_dir=dir_path,
 								 		   enc_only=enc_only)
 			n_frames = len(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
-			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 1.0:
+			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 3.0:
 				orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
 				sf.write('orig_audio.wav', orig_audio, hp.sr, 'PCM_16')
 				err_results.append(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
