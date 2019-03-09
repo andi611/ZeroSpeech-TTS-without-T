@@ -23,7 +23,10 @@ if __name__ == '__main__':
 	
 	parser = argparse.ArgumentParser(description='zerospeech_project')
 	parser.add_argument('--preprocess', default=False, action='store_true', help='preprocess the zerospeech dataset')
-	parser.add_argument('--train', default=False, action='store_true', help='start stage 1 and stage 2 training')
+	parser.add_argument('--train', default=False, action='store_true', help='start all training')
+	parser.add_argument('--train_ae', default=False, action='store_true', help='start auto-encoder training')
+	parser.add_argument('--train_g', default=False, action='store_true', help='start generator training')
+	parser.add_argument('--train_c', default=False, action='store_true', help='start target classifier training')
 	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on the testing list provided at --synthesis_list')
 	parser.add_argument('--cross_test', default=False, action='store_true', help='test the trained model on all testing files')
 	parser.add_argument('--test_single', default=False, action='store_true', help='test the trained model on a single file')
@@ -87,6 +90,7 @@ if __name__ == '__main__':
 				   dset=args.flag,
 				   remake=args.remake)
 
+
 	if args.train:
 		
 		#---create datasets---#
@@ -107,15 +111,18 @@ if __name__ == '__main__':
 		trainer = Trainer(hps, data_loader, args.g_mode, args.enc_mode)
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), load_model_list=hps.load_model_list)
 
-		if args.train:
-			# trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
-			# trainer.train(model_path, args.flag, mode='pretrain_C')  # Stage 1 pre-train: classifier-1
-			# trainer.train(model_path, args.flag, mode='train') 		 # Stage 1 training
-			
+		if args.train or args.train_ae:
+			trainer.train(model_path, args.flag, mode='pretrain_AE') 	# Stage 1 pre-train: encoder-decoder reconstruction
+			# trainer.train(model_path, args.flag, mode='pretrain_C')   # Stage 1 pre-train: classifier-1
+			# trainer.train(model_path, args.flag, mode='train') 		# Stage 1 training
+		
+		if args.train or args.train_g:	
 			trainer.add_duo_loader(source_loader, target_loader)
-			# trainer.train(model_path, args.flag, mode='patchGAN')	# Stage 2 training
+			trainer.train(model_path, args.flag, mode='patchGAN')		# Stage 2 training
 			
-			trainer.train(model_path, args.flag, mode='t_classify') # Target speaker classifier training
+		if args.train or args.train_c:	
+			trainer.train(model_path, args.flag, mode='t_classify') 	# Target speaker classifier training
+
 
 	if args.test or args.cross_test or args.test_single or args.t_classify:
 
