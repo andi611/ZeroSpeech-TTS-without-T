@@ -302,7 +302,7 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 		
 		if clf_speaker == tar_speaker:
 			acc.append(1)
-			#print('[info]: {} is classified to {}'.format(wav_path, clf_speaker), end = '');print(spec.shape)
+			#print('[info]: {} is classified to {}'.format(wav_path, clf_speaker), end = '')
 		else:
 			acc.append(0)
 			#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
