@@ -91,7 +91,7 @@ if __name__ == '__main__':
 				   remake=args.remake)
 
 
-	if args.train:
+	if args.train or args.train_ae or args.train_g or args.train_c:
 		
 		#---create datasets---#
 		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
