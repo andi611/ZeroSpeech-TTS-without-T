@@ -10,7 +10,8 @@
 ###############
 # IMPORTATION #
 ###############
-import os 
+import os
+import glob
 import h5py
 import json
 import copy
@@ -310,7 +311,7 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 	err_mean = np.mean(err_results, axis=0)
 	print('WERR: {:.3f}  CERR: {:.3f}, computed over {} samples'.format(err_mean[0], err_mean[1], len(err_results)))
 
-	
+
 def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 	dir_path = os.path.join(result_dir, f'{flag}/')
 	with open(synthesis_list, 'r') as f:
