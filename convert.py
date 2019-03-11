@@ -151,8 +151,8 @@ def convert(trainer,
 			wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
 			sf.write(wav_path, wav_data, hp.sr, 'PCM_16')
 		if 'enc' in save: 
-			write_encoding(enc_path, encodings)
 			enc_path = os.path.join(result_dir, f'{src_speaker}_{utt_id}.txt')
+			write_encoding(enc_path, encodings)
 		return wav_path, len(converted_results)
 	else:
 		return wav_data, encodings
@@ -167,7 +167,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 	with open(synthesis_list, 'r') as f:
 		file = f.readlines()
 		for line in file:
-			line = line.split('\n')[0].split(' ')
+			line = line.split(' ')
 			feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
 						  'utt_id' : line[0].split('/')[1].split('_')[1], 
 						  't_id' : line[1], })
@@ -279,37 +279,40 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 
 	for file in files:
 		print(file)
-		line = line.split('\n')[0].split(' ')
-		feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
-					  'utt_id' : line[0].split('/')[1].split('_')[1], 
-					  't_id' : line[1], })
+		line = line.split('/')[-1]
+		feeds.append({'s_id' : line.split('_')[0],
+					  'utt_id' : line.split('_')[1].split('.')[0]})
 
-	print('[Tester] - Number of files to be resynthesize: ', len(feeds))
+	print('[Tester] - Number of files to encoded: ', len(feeds))
 	dir_path = os.path.join(result_dir, f'{flag}/')
 	os.makedirs(dir_path, exist_ok=True)
 
-	err_results = []
 	with h5py.File(data_path, 'r') as f_h5:
-		for feed in tqdm(feeds):
-			conv_audio, n_frames = convert(trainer,
-								 		   seg_len,
-								 		   src_speaker_spec=f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()], 
-								 		   src_speaker=feed['s_id'],
-								 		   tar_speaker=feed['t_id'],
-								 		   utt_id=feed['utt_id'],
-								 		   speaker2id=speaker2id,
-								 		   result_dir=dir_path,
-								 		   enc_only=enc_only,
-								 		   save=['wav'])
-			n_frames = len(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
-			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 3.0:
-				orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
-				sf.write('orig_audio.wav', orig_audio, hp.sr, 'PCM_16')
-				err_results.append(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
-				os.remove(path='orig_audio.wav')
+		for feed in feeds:
 
-	err_mean = np.mean(err_results, axis=0)
-	print('WERR: {:.3f}  CERR: {:.3f}, computed over {} samples'.format(err_mean[0], err_mean[1], len(err_results)))
+			src_speaker_spec = f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()]
+
+			if len(src_speaker_spec) < seg_len:
+				encodings = encode_x(x, trainer)
+
+			else:
+				encodings = []
+				for idx in range(0, len(src_speaker_spec), seg_len):
+					if idx + (seg_len*2) > len(src_speaker_spec):
+						spec_frag = src_speaker_spec[idx:-1]
+					else:
+						spec_frag = src_speaker_spec[idx:idx+seg_len]
+
+					if len(spec_frag) >= seg_len:
+						enc = convert_x(spec_frag, trainer)
+						encodings.append(enc)
+					elif idx == 0:
+						raise RuntimeError('Please check if input is too short!')
+
+				encodings = np.concatenate(encodings, axis=0)
+
+			enc_path = os.path.join(result_dir, f"{feed['s_id']}_{feed['utt_id']}.txt")
+			write_encoding(enc_path, encodings)
 
 
 def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
