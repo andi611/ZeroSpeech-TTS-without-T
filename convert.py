@@ -120,7 +120,7 @@ def convert(trainer,
 			speaker2id,
 			result_dir,
 			enc_only=True,
-			save=True): 
+			save=['wav', 'enc']): 
 	
 	if len(src_speaker_spec) < seg_len:
 		converted_results, encodings = convert_x(src_speaker_spec, speaker2id[tar_speaker], trainer, enc_only=enc_only)
@@ -145,11 +145,13 @@ def convert(trainer,
 		encodings = np.concatenate(encodings, axis=0)
 
 	wav_data = spectrogram2wav(converted_results)
-	if save:
-		wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
-		enc_path = os.path.join(result_dir, f'{src_speaker}_{utt_id}.txt')
-		sf.write(wav_path, wav_data, hp.sr, 'PCM_16')
-		write_encoding(enc_path, encodings)
+	if len(save) != 0:
+		if 'wav' in save: 
+			wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
+			sf.write(wav_path, wav_data, hp.sr, 'PCM_16')
+		if 'enc' in save: 
+			write_encoding(enc_path, encodings)
+			enc_path = os.path.join(result_dir, f'{src_speaker}_{utt_id}.txt')
 		return wav_path, len(converted_results)
 	else:
 		return wav_data, encodings
@@ -184,7 +186,8 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 								 		   utt_id=feed['utt_id'],
 								 		   speaker2id=speaker2id,
 								 		   result_dir=dir_path,
-								 		   enc_only=enc_only)
+								 		   enc_only=enc_only,
+								 		   save=['wav'])
 			n_frames = len(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
 			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 3.0:
 				orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
@@ -257,7 +260,7 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 								  speaker2id=speaker2id,
 								  result_dir=result_dir,
 								  enc_only=enc_only,
-								  save=False)
+								  save=[])
 
 	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_16')
 	write_encoding(os.path.join(result_dir, 'result.txt'), encodings)
