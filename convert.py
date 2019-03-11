@@ -107,6 +107,7 @@ def write_encoding(path, encodings):
 def convert(trainer,
 			seg_len,
 			src_speaker_spec, 
+			src_speaker,
 			tar_speaker,
 			utt_id,
 			speaker2id,
@@ -139,7 +140,7 @@ def convert(trainer,
 	wav_data = spectrogram2wav(converted_results)
 	if save:
 		wav_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.wav')
-		enc_path = os.path.join(result_dir, f'{tar_speaker}_{utt_id}.txt')
+		enc_path = os.path.join(result_dir, f'{src_speaker}_{utt_id}.txt')
 		sf.write(wav_path, wav_data, hp.sr, 'PCM_16')
 		write_encoding(enc_path, encodings)
 		return wav_path, len(converted_results)
@@ -171,6 +172,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 			conv_audio, n_frames = convert(trainer,
 								 		   seg_len,
 								 		   src_speaker_spec=f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()], 
+								 		   src_speaker=feed['s_id'],
 								 		   tar_speaker=feed['t_id'],
 								 		   utt_id=feed['utt_id'],
 								 		   speaker2id=speaker2id,
@@ -242,6 +244,7 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 	wav_data, encodings = convert(trainer,
 								  seg_len,
 								  src_speaker_spec=spec, 
+								  src_speaker=s_speaker,
 								  tar_speaker=t_speaker,
 								  utt_id='',
 								  speaker2id=speaker2id,

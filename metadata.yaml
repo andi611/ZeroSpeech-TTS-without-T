@@ -5,7 +5,7 @@ affiliation:
 abx distance:
   levenshtein
 open source:
-  true
+  false
 system description:
   a brief description of your system, eventually pointing to a paper
 auxiliary1 description:
