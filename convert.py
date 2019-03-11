@@ -107,8 +107,8 @@ def compare_asr(s_wav, t_wav):
 def write_encoding(path, encodings):
 	with open(path, 'w') as file:
 		for enc in encodings:
-			for element in enc:
-				file.write(str(int(element)) + ' ')
+			for i, e in enumerate(enc):
+				file.write(str(int(e)) + (' ' if i < len(enc)-1 else ''))
 			file.write('\n')
 
 
