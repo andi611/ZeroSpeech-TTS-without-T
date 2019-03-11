@@ -184,6 +184,13 @@ class Trainer(object):
 			if verbose: print('Testing with Autoencoder only, encoding: ', enc.data.cpu().numpy())
 		return x_dec.data.cpu().numpy(), enc.data.cpu().numpy()
 
+
+	def encoder_test_step(self, x):
+		self.set_eval()
+		x = to_var(x).permute(0, 2, 1)
+		enc, _ = self.Encoder(x)
+		return enc.data.cpu().numpy()
+
 		
 	def classify(self, x):
 		self.set_eval()

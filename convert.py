@@ -68,6 +68,13 @@ def convert_x(x, c, trainer, enc_only, verbose=False):
 	return converted, enc
 
 
+def encode_x(x, trainer):
+	tensor = torch.from_numpy(np.expand_dims(x, axis=0)).type(torch.FloatTensor)
+	enc = trainer.encoder_test_step(tensor)
+	enc = enc.squeeze(axis=0).transpose((1, 0))
+	return enc
+
+
 def get_trainer(hps_path, model_path, g_mode, enc_mode):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
