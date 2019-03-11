@@ -19,8 +19,10 @@ from convert import test_from_list, cross_test, test_single, target_classify, ge
 from dataloader import Dataset, DataLoader
 
 
-if __name__ == '__main__':
-	
+###################
+# ARGUMENT RUNNER #
+###################
+def argument_runner():
 	parser = argparse.ArgumentParser(description='zerospeech_project')
 	parser.add_argument('--preprocess', default=False, action='store_true', help='preprocess the zerospeech dataset')
 	parser.add_argument('--train', default=False, action='store_true', help='start all training')
@@ -43,6 +45,7 @@ if __name__ == '__main__':
 	static_setting.add_argument('--t_speaker', type=str, default='V002', help='for the --test_single mode, set voice convergence target speaker')
 	
 	data_path = parser.add_argument_group('data_path')
+	data_path.add_argument('--dataset', choices=['english', 'surprise'], default='english', help='which dataset to use')
 	data_path.add_argument('--source_path', type=str, default='./data/english/train/unit/', help='the zerospeech train unit dataset')
 	data_path.add_argument('--target_path', type=str, default='./data/english/train/voice/', help='the zerospeech train voice dataset')
 	data_path.add_argument('--test_path', type=str, default='./data/english/test/', help='the zerospeech test dataset')
@@ -55,7 +58,7 @@ if __name__ == '__main__':
 
 	model_path = parser.add_argument_group('model_path')
 	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech_exp.json', help='hyperparameter path, please refer to the default settings in zerospeech.json')
-	model_path.add_argument('--ckpt_dir', type=str, default='./ckpt', help='checkpoint directory for training storage')
+	model_path.add_argument('--ckpt_dir', type=str, default='./ckpt_english', help='checkpoint directory for training storage')
 	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
 	model_path.add_argument('--sub_result_dir', type=str, default='./english/', help='sub result directory for generating zerospeech synthesis results')
 	model_path.add_argument('--model_name', type=str, default='model.pth', help='base model name for training')
@@ -63,10 +66,21 @@ if __name__ == '__main__':
 	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-s2-150000', help='the model to restore for testing, the command --test will load this model')
 	args = parser.parse_args()
 
+	#---reparse if switching dataset---#
+	if args.dataset == 'surprise':
+		for arg, value in vars(args).items():
+			if ('path' in arg or 'synthesis_list' in arg or 'sub_result_dir' in arg or 'ckpt_dir' in arg) and 'english' in value:
+				for action in parser._actions:
+					if action.dest == arg:
+						action.default = value.replace('english', 'surprise')
+		args = parser.parse_args()
+	print('Dataset: ', args.dataset)
+	
+	#---get hps---#
 	HPS = Hps(args.hps_path)
 	hps = HPS.get_tuple()
-	
 
+	#---show current mode---#
 	if args.g_mode == 'set_from_hps':
 		args.g_mode = hps.g_mode 
 	if args.enc_mode == 'set_from_hps':
@@ -75,6 +89,15 @@ if __name__ == '__main__':
 	print('Generator mode: ', args.g_mode)
 	print('Encoder mode: ', args.enc_mode)
 
+	return args, hps
+
+
+########
+# MAIN #
+########
+def main():
+	
+	args, hps = argument_runner()
 
 	if args.preprocess:	
 		
@@ -114,8 +137,8 @@ if __name__ == '__main__':
 
 		if args.train or args.train_ae:
 			trainer.train(model_path, args.flag, mode='pretrain_AE') 	# Stage 1 pre-train: encoder-decoder reconstruction
-			# trainer.train(model_path, args.flag, mode='pretrain_C')   # Stage 1 pre-train: classifier-1
-			# trainer.train(model_path, args.flag, mode='train') 		# Stage 1 training
+			# trainer.train(model_path, args.flag, mode='pretrain_C')   # Deprecated: Stage 1 pre-train: classifier-1
+			# trainer.train(model_path, args.flag, mode='train') 		# Deprecated: Stage 1 training
 		
 		if args.train or args.train_g:	
 			trainer.add_duo_loader(source_loader, target_loader)
@@ -142,3 +165,6 @@ if __name__ == '__main__':
 		if args.t_classify:
 			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
 
+
+if __name__ == '__main__':
+	main()
