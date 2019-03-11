@@ -7,14 +7,11 @@
 """*********************************************************************************************"""
 
 
-###############
-# IMPORTATION #
-###############
-import torch
 import numpy as np
+import torch
 import torch.nn as nn
-from torch.autograd import Variable
 from tensorboardX import SummaryWriter
+from torch.autograd import Variable
 
 
 def cc(net):
@@ -83,4 +80,3 @@ class Logger(object):
 
 	def scalar_summary(self, tag, value, step):
 		self.writer.add_scalar(tag, value, step)
-

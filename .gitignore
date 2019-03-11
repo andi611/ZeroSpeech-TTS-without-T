@@ -1,0 +1,6 @@
+.vscode
+__*
+ckpt/*
+log/*
+data/*
+test.py

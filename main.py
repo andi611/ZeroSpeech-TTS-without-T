@@ -10,15 +10,15 @@
 ###############
 # IMPORTATION #
 ###############
-import os
 import argparse
-from hps.hps import Hps
-from trainer import Trainer
-from preprocess import preprocess
-from convert import test, test_single, get_trainer
-from dataloader import Dataset, DataLoader
-from discrete import clustering, train_discrete_decoder
+import os
 
+from convert import get_trainer, test, test_single
+from dataloader import DataLoader, Dataset
+from discrete import discrete_main
+from hps.hps import Hps
+from preprocess import preprocess
+from trainer import Trainer
 
 if __name__ == '__main__':
 	
@@ -127,3 +127,5 @@ if __name__ == '__main__':
 		encoded = [trainer.encode_step(x) for x in data]
 		kmeans, look_up = clustering(encoded, n_clusters=args.n_clusters)
 		train_discrete_decoder(trainer, look_up, model_path)
+
+	discrete_main(args)

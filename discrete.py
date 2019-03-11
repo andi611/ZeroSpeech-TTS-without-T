@@ -1,36 +1,107 @@
+import json
+import os
 from argparse import ArgumentParser
 from os import path
 
+import h5py
 import numpy as np
 import torch
 from sklearn.cluster import KMeans
-from torch import cuda, nn, optim
+from torch import cuda, distributions, nn, optim
+from torch.nn import functional as F
+from tqdm import tqdm
 
-from model import Decoder
+from convert import convert_all_sp, test
+from dataloader import DataLoader, Dataset
+from hps.hps import Hps
+from parallages import VariationalDecoder as Decoder
 from trainer import Trainer
 from utils import grad_clip, reset_grad
 
 
+class GumbelSoftmax:
+    def __init__(self, u=0, b=1, t=.1, dim=-1):
+        self.gumbel = distributions.Gumbel(loc=u, scale=b)
+        self.temperature = t
+        self.dim = dim
+
+    def __call__(self, inputs):
+        sample = self.gumbel.sample(inputs.shape)
+        x = torch.log(inputs)+sample
+        return F.softmax(x/self.temperature, dim=self.dim)
+
+
+class ClassEncoder(nn.Module):
+    def __init__(self, input_shape, n_classes, hidden_dim=100):
+        super().__init__()
+        self.input_shape = np.array(input_shape)
+        self.linear_block = nn.ModuleList([
+            nn.Linear(in_features=np.prod(
+                input_shape[1:]), out_features=hidden_dim),
+            nn.ReLU(),
+            nn.Linear(in_features=hidden_dim, out_features=n_classes)
+        ])
+        self.gumbel = GumbelSoftmax()
+
+    def forward(self, inputs):
+        inputs = inputs.view(self.input_shape[0], -1)
+        net = inputs
+        for layer in self.linear_block:
+            net = layer(net)
+        return self.gumbel(net)
+
+
+class ClassDecoder(nn.Module):
+    def __init__(self, original_shape, n_classes, hidden_dim=100):
+        super().__init__()
+        self.original_shape = np.array(original_shape)
+        self.linear_block = nn.ModuleList([
+            nn.Linear(in_features=n_classes, out_features=hidden_dim),
+            nn.ReLU(),
+            nn.Linear(in_features=hidden_dim,
+                      out_features=np.prod(original_shape[1:]))
+        ])
+
+    def forward(self, inputs):
+        net = inputs
+        for layer in self.linear_block:
+            net = layer(net)
+        return net.view(*self.original_shape)
+
+
+class ToOneHot(nn.Module):
+    def __init__(self, input_shape, n_classes, hidden_dim=100):
+        super().__init__()
+        self.enc = ClassEncoder(input_shape, n_classes, hidden_dim)
+        self.dec = ClassDecoder(input_shape, n_classes, hidden_dim)
+
+    def forward(self, inputs):
+        encoded = self.enc(inputs)
+        return encoded, self.dec(encoded)
+
+
 def clustering(inputs, n_clusters):
     class LookUp:
-        def __init__(self, k_means):
+        def __init__(self, k_means, shapes):
             self.k_means = k_means
+            self.shapes = shapes
 
-        def __call__(self, inputs):
-            cls = [self.k_means.predict(np.expand_dims(i, 0)) for i in inputs]
-            return np.array([self.k_means.cluster_centers_[c.squeeze()] for c in cls])
+        def __call__(self, inputs, device='cuda'if cuda.is_available() else 'cpu'):
+            inputs = np.array(inputs)
+            if inputs.shape == self.shapes[1:]:
+                inputs = np.expand_dims(inputs, 0)
+            cls = np.array([self.k_means.predict(i.reshape(1, -1))
+                            for i in inputs])
+            return torch.tensor(np.array([self.k_means.cluster_centers_[c].reshape(*self.shapes[1:]) for c in cls]), device=device)
     k_means = KMeans(n_clusters=n_clusters)
-    k_means.fit(inputs)
-    return k_means, LookUp(k_means)
+    reshaped = inputs.reshape(inputs.shape[0], -1)
+    k_means.fit(reshaped)
+    return k_means, LookUp(k_means, shapes=inputs.shape)
 
 
-def train_discrete_decoder(trainer, look_up, model_path, flag='train'):
+def finetune_discrete_decoder(trainer, look_up, model_path, flag='train'):
     # trainer is already trained
     hyper_params = trainer.hps
-
-    tDecoder = trainer.Decoder
-    dDecoder = Decoder(ns=tDecoder.ns, c_in=tDecoder.emb_size,
-                       c_h=tDecoder.emb_size, c_a=hyper_params.n_speakers)
 
     for iteration in range(hyper_params.enc_pretrain_iters):
         data = next(trainer.data_loader)
@@ -48,277 +119,74 @@ def train_discrete_decoder(trainer, look_up, model_path, flag='train'):
 
         # tb info
         info = {
-            f'{flag}/pre_loss_rec': loss_rec.item(),
+            f'{flag}/disc_loss_rec': loss_rec.item(),
         }
         slot_value = (iteration + 1, hyper_params.enc_pretrain_iters) + \
             tuple([value for value in info.values()])
-        log = 'pre_AE:[%06d/%06d], loss_rec=%.3f'
+        log = 'train_discrete:[%06d/%06d], loss_rec=%.3f'
         print(log % slot_value, end='\r')
 
         if iteration % 100 == 0:
             for tag, value in info.items():
                 trainer.logger.scalar_summary(tag, value, iteration + 1)
         if (iteration + 1) % 1000 == 0:
-            trainer.save_model(model_path, 'ae', iteration + 1)
+            trainer.save_model(model_path, 'dc', iteration + 1)
     print()
 
 
-def train(trainer, model_path, flag='train', mode='train'):
-    # load hyperparams
-    hps = trainer.hps
+def discrete_test(trainer, data_path, speaker2id_path, result_dir, enc_only, flag):
 
-    if mode == 'pretrain_AE':
-        for iteration in range(hps.enc_pretrain_iters):
-            data = next(trainer.data_loader)
-            c, x = trainer.permute_data(data)
+    f_h5 = h5py.File(data_path, 'r')
 
-            # encode
-            enc = trainer.encode_step(x)
-            x_tilde = trainer.decode_step(enc, c)
-            loss_rec = torch.mean(torch.abs(x_tilde - x))
-            reset_grad([trainer.Encoder, trainer.Decoder])
-            loss_rec.backward()
-            grad_clip([trainer.Encoder, trainer.Decoder],
-                      trainer.hps.max_grad_norm)
-            trainer.ae_opt.step()
+    print('[Tester] - Testing on the {}ing set...'.format(flag))
+    if flag == 'test':
+        source_speakers = sorted(list(f_h5['test'].keys()))
+    elif flag == 'train':
+        source_speakers = [s for s in sorted(
+            list(f_h5['train'].keys())) if s[0] == 'S']
+    target_speakers = [s for s in sorted(
+        list(f_h5['train'].keys())) if s[0] == 'V']
+    print('[Tester] - Source speakers: %i, Target speakers: %i' %
+          (len(source_speakers), len(target_speakers)))
 
-            # tb info
-            info = {
-                f'{flag}/pre_loss_rec': loss_rec.item(),
-            }
-            slot_value = (iteration + 1, hps.enc_pretrain_iters) + \
-                tuple([value for value in info.values()])
-            log = 'pre_AE:[%06d/%06d], loss_rec=%.3f'
-            print(log % slot_value, end='\r')
+    with open(speaker2id_path, 'r') as f_json:
+        speaker2id = json.load(f_json)
 
-            if iteration % 100 == 0:
-                for tag, value in info.items():
-                    trainer.logger.scalar_summary(tag, value, iteration + 1)
-            if (iteration + 1) % 1000 == 0:
-                trainer.save_model(model_path, 'ae', iteration + 1)
-        print()
+    print('[Tester] - Converting all testing utterances from source speakers to target speakers, this may take a while...')
+    for speaker_S in tqdm(source_speakers):
+        for speaker_T in target_speakers:
+            assert speaker_S != speaker_T
+            dir_path = os.path.join(result_dir, f'p{speaker_S}_p{speaker_T}')
+            os.makedirs(dir_path, exist_ok=True)
 
-    elif mode == 'pretrain_C':
-        for iteration in range(hps.dis_pretrain_iters):
+            convert_all_sp(trainer,
+                           data_path,
+                           speaker_S,
+                           speaker_T,
+                           enc_only=enc_only,
+                           dset=flag,
+                           speaker2id=speaker2id,
+                           result_dir=dir_path)
 
-            data = next(trainer.data_loader)
-            c, x = trainer.permute_data(data)
 
-            # encode
-            enc = trainer.encode_step(x)
-
-            # classify speaker
-            logits = trainer.clf_step(enc)
-            loss_clf = trainer.cal_loss(logits, c)
-
-            # update
-            reset_grad([trainer.SpeakerClassifier])
-            loss_clf.backward()
-            grad_clip([trainer.SpeakerClassifier], trainer.hps.max_grad_norm)
-            trainer.clf_opt.step()
-
-            # calculate acc
-            acc = trainer.cal_acc(logits, c)
-            info = {
-                f'{flag}/pre_loss_clf': loss_clf.item(),
-                f'{flag}/pre_acc': acc,
-            }
-            slot_value = (iteration + 1, hps.dis_pretrain_iters) + \
-                tuple([value for value in info.values()])
-            log = 'pre_C:[%06d/%06d], loss_clf=%.2f, acc=%.2f'
-
-            print(log % slot_value, end='\r')
-            if iteration % 100 == 0:
-                for tag, value in info.items():
-                    trainer.logger.scalar_summary(tag, value, iteration + 1)
-            if (iteration + 1) % 1000 == 0:
-                trainer.save_model(model_path, 'c', iteration + 1)
-        print()
-
-    elif mode == 'train':
-        for iteration in range(hps.iters):
-
-            # calculate current alpha
-            if iteration < hps.lat_sched_iters:
-                current_alpha = hps.alpha_enc * \
-                    (iteration / hps.lat_sched_iters)
-            else:
-                current_alpha = hps.alpha_enc
-
-            #==================train D==================#
-            for step in range(hps.n_latent_steps):
-                data = next(trainer.data_loader)
-                c, x = trainer.permute_data(data)
-
-                # encode
-                enc = trainer.encode_step(x)
-
-                # classify speaker
-                logits = trainer.clf_step(enc)
-                loss_clf = trainer.cal_loss(logits, c)
-                loss = hps.alpha_dis * loss_clf
-
-                # update
-                reset_grad([trainer.SpeakerClassifier])
-                loss.backward()
-                grad_clip([trainer.SpeakerClassifier],
-                          trainer.hps.max_grad_norm)
-                trainer.clf_opt.step()
-
-                # calculate acc
-                acc = trainer.cal_acc(logits, c)
-                info = {
-                    f'{flag}/D_loss_clf': loss_clf.item(),
-                    f'{flag}/D_acc': acc,
-                }
-                slot_value = (step, iteration + 1, hps.iters) + \
-                    tuple([value for value in info.values()])
-                log = 'D-%d:[%06d/%06d], loss_clf=%.2f, acc=%.2f'
-
-                print(log % slot_value, end='\r')
-                if iteration % 100 == 0:
-                    for tag, value in info.items():
-                        trainer.logger.scalar_summary(
-                            tag, value, iteration + 1)
-            #==================train G==================#
-            data = next(trainer.data_loader)
-            c, x = trainer.permute_data(data)
-
-            # encode
-            enc = trainer.encode_step(x)
-
-            # decode
-            x_tilde = trainer.decode_step(enc, c)
-            loss_rec = torch.mean(torch.abs(x_tilde - x))
-
-            # classify speaker
-            logits = trainer.clf_step(enc)
-            acc = trainer.cal_acc(logits, c)
-            loss_clf = trainer.cal_loss(logits, c)
-
-            # maximize classification loss
-            loss = loss_rec - current_alpha * loss_clf
-            reset_grad([trainer.Encoder, trainer.Decoder])
-            loss.backward()
-            grad_clip([trainer.Encoder, trainer.Decoder],
-                      trainer.hps.max_grad_norm)
-            trainer.ae_opt.step()
-
-            info = {
-                f'{flag}/loss_rec': loss_rec.item(),
-                f'{flag}/G_loss_clf': loss_clf.item(),
-                f'{flag}/alpha': current_alpha,
-                f'{flag}/G_acc': acc,
-            }
-            slot_value = (iteration + 1, hps.iters) + \
-                tuple([value for value in info.values()])
-            log = 'G:[%06d/%06d], loss_rec=%.3f, loss_clf=%.2f, alpha=%.2e, acc=%.2f'
-            print(log % slot_value, end='\r')
-
-            if iteration % 100 == 0:
-                for tag, value in info.items():
-                    trainer.logger.scalar_summary(tag, value, iteration + 1)
-            if (iteration + 1) % 1000 == 0:
-                trainer.save_model(model_path, 's1', iteration + 1)
-        print()
-
-    elif mode == 'patchGAN':
-        for iteration in range(hps.patch_iters):
-            #==================train D==================#
-            for step in range(hps.n_patch_steps):
-
-                data_s = next(trainer.source_loader)
-                data_t = next(trainer.target_loader)
-                _, x_s = trainer.permute_data(data_s)
-                c, x_t = trainer.permute_data(data_t)
-
-                # encode
-                enc = trainer.encode_step(x_s)
-
-                # sample c
-                c_prime = trainer.sample_c(x_t.size(0))
-
-                # generator
-                x_tilde = trainer.gen_step(enc, c_prime)
-
-                # discriminstor
-                w_dis, real_logits, gp = trainer.patch_step(
-                    x_t, x_tilde, is_dis=True)
-
-                # aux classification loss
-                loss_clf = trainer.cal_loss(real_logits, c, shift=True)
-
-                loss = -hps.beta_dis * w_dis + hps.beta_clf * loss_clf + hps.lambda_ * gp
-                reset_grad([trainer.PatchDiscriminator])
-                loss.backward()
-                grad_clip([trainer.PatchDiscriminator],
-                          trainer.hps.max_grad_norm)
-                trainer.patch_opt.step()
-
-                # calculate acc
-                acc = trainer.cal_acc(real_logits, c, shift=True)
-                info = {
-                    f'{flag}/w_dis': w_dis.item(),
-                    f'{flag}/gp': gp.item(),
-                    f'{flag}/real_loss_clf': loss_clf.item(),
-                    f'{flag}/real_acc': acc,
-                }
-                slot_value = (step, iteration+1, hps.patch_iters) + \
-                    tuple([value for value in info.values()])
-                log = 'patch_D-%d:[%06d/%06d], w_dis=%.2f, gp=%.2f, loss_clf=%.2f, acc=%.2f'
-                print(log % slot_value, end='\r')
-
-                if iteration % 100 == 0:
-                    for tag, value in info.items():
-                        trainer.logger.scalar_summary(
-                            tag, value, iteration + 1)
-
-            #==================train G==================#
-            data_s = next(trainer.source_loader)
-            data_t = next(trainer.target_loader)
-            _, x_s = trainer.permute_data(data_s)
-            c, x_t = trainer.permute_data(data_t)
-
-            # encode
-            enc = trainer.encode_step(x_s)
-
-            # sample c
-            c_prime = trainer.sample_c(x_t.size(0))
-
-            # generator
-            x_tilde = trainer.gen_step(enc, c_prime)
-
-            # discriminstor
-            loss_adv, fake_logits = trainer.patch_step(
-                x_t, x_tilde, is_dis=False)
-
-            # aux classification loss
-            loss_clf = trainer.cal_loss(fake_logits, c_prime, shift=True)
-            loss = hps.beta_clf * loss_clf + hps.beta_gen * loss_adv
-            reset_grad([trainer.Generator])
-            loss.backward()
-            grad_clip([trainer.Generator], trainer.hps.max_grad_norm)
-            trainer.gen_opt.step()
-
-            # calculate acc
-            acc = trainer.cal_acc(fake_logits, c_prime, shift=True)
-            info = {
-                f'{flag}/loss_adv': loss_adv.item(),
-                f'{flag}/fake_loss_clf': loss_clf.item(),
-                f'{flag}/fake_acc': acc,
-            }
-            slot_value = (iteration+1, hps.patch_iters) + \
-                tuple([value for value in info.values()])
-            log = 'patch_G:[%06d/%06d], loss_adv=%.2f, loss_clf=%.2f, acc=%.2f'
-            print(log % slot_value, end='\r')
-
-            if iteration % 100 == 0:
-                for tag, value in info.items():
-                    trainer.logger.scalar_summary(tag, value, iteration + 1)
-            if (iteration + 1) % 1000 == 0:
-                trainer.save_model(model_path, 's2',
-                                   iteration + 1 + hps.iters)
-        print()
-
-    else:
-        raise NotImplementedError()
+def discrete_main(args):
+    if not args.discrete:
+        return
+    HPS = Hps(args.hps_path)
+    hps = HPS.get_tuple()
+    model_path = path.join(args.ckpt_dir, args.load_test_model_name)
+    dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
+    data_loader = DataLoader(dataset, hps.batch_size)
+    trainer = Trainer(hps, data_loader, args.targeted_G,
+                      args.one_hot, binary_output=False, binary_ver=False)
+    trainer.load_model(
+        path.join(args.ckpt_dir, args.load_train_model_name), model_all=True)
+    data = [d.unsqueeze(0) for d in dataset]
+    data = [trainer.permute_data(d)[1] for d in data]
+    encoded = [trainer.encode_step(x) for x in data]
+    kmeans, look_up = clustering(encoded, n_clusters=args.n_clusters)
+    test(trainer, args.dataset_path, args.speaker2id_path,
+         args.result_dir, args.enc_only, args.flag)
+    finetune_discrete_decoder(trainer, look_up, model_path)
+    discrete_test(trainer, args.dataset_path, args.speaker2id_path,
+                  'discrete_'+args.result_dir, args.enc_only, args.flag)

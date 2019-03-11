@@ -305,7 +305,7 @@ class CBHG(nn.Module):
 		out = highway(out, self.layers, self.gates, F.relu)
 		out_rnn = RNN(out, self.RNN)
 		out = linear(out_rnn, self.linear2)
-		out = F.sogmoid(out)
+		out = F.sigmoid(out)
 		return out
 
 
