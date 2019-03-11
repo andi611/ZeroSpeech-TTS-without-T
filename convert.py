@@ -320,5 +320,44 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 			acc.append(0)
 			#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
 	print('Classification Acc: {:.3f}'.format(np.sum(acc)/len(acc)))
+
+
+def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test'):
 	
+	files = sorted(glob.glob(os.path.join(test_path, '*.wav')))
+	feeds = []
+
+	for file in fils:
+		print(file)
+		line = line.split('\n')[0].split(' ')
+		feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
+					  'utt_id' : line[0].split('/')[1].split('_')[1], 
+					  't_id' : line[1], })
+
+	print('[Tester] - Number of files to be resynthesize: ', len(feeds))
+	dir_path = os.path.join(result_dir, f'{flag}/')
+	os.makedirs(dir_path, exist_ok=True)
+
+	err_results = []
+	with h5py.File(data_path, 'r') as f_h5:
+		for feed in tqdm(feeds):
+			conv_audio, n_frames = convert(trainer,
+								 		   seg_len,
+								 		   src_speaker_spec=f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()], 
+								 		   src_speaker=feed['s_id'],
+								 		   tar_speaker=feed['t_id'],
+								 		   utt_id=feed['utt_id'],
+								 		   speaker2id=speaker2id,
+								 		   result_dir=dir_path,
+								 		   enc_only=enc_only,
+								 		   save=['wav'])
+			n_frames = len(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
+			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 3.0:
+				orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
+				sf.write('orig_audio.wav', orig_audio, hp.sr, 'PCM_16')
+				err_results.append(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
+				os.remove(path='orig_audio.wav')
+
+	err_mean = np.mean(err_results, axis=0)
+	print('WERR: {:.3f}  CERR: {:.3f}, computed over {} samples'.format(err_mean[0], err_mean[1], len(err_results)))
 	

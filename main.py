@@ -32,7 +32,8 @@ def argument_runner():
 	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on the testing list provided at --synthesis_list')
 	parser.add_argument('--cross_test', default=False, action='store_true', help='test the trained model on all testing files')
 	parser.add_argument('--test_single', default=False, action='store_true', help='test the trained model on a single file')
-	parser.add_argument('--t_classify', default=False, action='store_true', help='classify speakers on all testing files')
+	parser.add_argument('--test_encode', default=False, action='store_true', help='test the trained model encoding ability by generating encodings')
+	parser.add_argument('--test_classify', default=False, action='store_true', help='classify speakers on all testing files')
 	parser.add_argument('--load_model', default=False, action='store_true', help='whether to load training session from previous checkpoints')
 
 	static_setting = parser.add_argument_group('static_setting')
@@ -146,7 +147,7 @@ def main():
 			trainer.train(model_path, args.flag, mode='t_classify') 	# Target speaker classifier training
 
 
-	if args.test or args.cross_test or args.test_single or args.t_classify:
+	if args.test or args.cross_test or args.test_single or args.test_encode or args.test_classify:
 
 		os.makedirs(args.result_dir, exist_ok=True)
 		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
@@ -159,7 +160,9 @@ def main():
 			cross_test(trainer, hps.seg_len, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, flag='test')
 		if args.test_single:
 			test_single(trainer, hps.seg_len, args.speaker2id_path, args.result_dir, args.enc_only, args.s_speaker, args.t_speaker)
-		if args.t_classify:
+		if args.test_encode:
+			test_encode(trainer, hps.seg_len, args.test_path, args.dataset_path, args.result_dir, flag='test')
+		if args.test_classify:
 			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
 
 
