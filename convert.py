@@ -277,7 +277,7 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 	files = sorted(glob.glob(os.path.join(test_path, '*.wav')))
 	feeds = []
 
-	for file in fils:
+	for file in files:
 		print(file)
 		line = line.split('\n')[0].split(' ')
 		feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
