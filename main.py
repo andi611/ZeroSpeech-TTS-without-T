@@ -65,26 +65,23 @@ def argument_runner():
 	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-ae-424000', help='the model to restore for training, the command --load_model will load this model')
 	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-s2-150000', help='the model to restore for testing, the command --test will load this model')
 	args = parser.parse_args()
+	
+	#---reparse if switching dataset---#
+	if args.dataset == 'surprise':
+		for action in parser._actions:
+			if ('path' in action.dest or 'synthesis_list' in action.dest or 'sub_result_dir' in action.dest):
+				if 'english' in action.default:
+					action.default = action.default.replace('english', 'surprise')
+		args = parser.parse_args()
+	print('[Runner] - Dataset: ', args.dataset)
 
 	#---get hps---#
 	HPS = Hps(args.hps_path)
 	hps = HPS.get_tuple()
-
-	#---reparse if switching dataset---#
-	if args.dataset == 'surprise':
-		for arg, value in vars(args).items():
-			if ('path' in arg or 'synthesis_list' in arg or 'sub_result_dir' in arg or 'ckpt_dir' in arg) and 'english' in value:
-				for action in parser._actions:
-					if action.dest == arg:
-						action.default = value.replace('english', 'surprise')
-		args = parser.parse_args()
-	print('[Runner] - Dataset: ', args.dataset)
 	
 	#---show current mode---#
-	if args.g_mode == 'set_from_hps':
-		args.g_mode = hps.g_mode 
-	if args.enc_mode == 'set_from_hps':
-		args.enc_mode = hps.enc_mode 
+	if args.g_mode == 'set_from_hps': args.g_mode = hps.g_mode 
+	if args.enc_mode == 'set_from_hps': args.enc_mode = hps.enc_mode 
 	print('[Runner] - Generation mode: ', 'autoencoder only' if args.enc_only else 'with generator')
 	print('[Runner] - Generator mode: ', args.g_mode)
 	print('[Runner] - Encoder mode: ', args.enc_mode)
