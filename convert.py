@@ -123,26 +123,26 @@ def convert(trainer,
 			save=True): 
 	
 	if len(src_speaker_spec) < seg_len:
-		padding = np.zeros((seg_len - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
-		src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
+		converted_results, encodings = convert_x(src_speaker_spec, speaker2id[tar_speaker], trainer, enc_only=enc_only)
 
-	converted_results = []
-	encodings = []
-	for idx in range(0, len(src_speaker_spec), seg_len):
-		if idx + (seg_len*2) > len(src_speaker_spec):
-			spec_frag = src_speaker_spec[idx:-1]
-		else:
-			spec_frag = src_speaker_spec[idx:idx+seg_len]
+	else:
+		converted_results = []
+		encodings = []
+		for idx in range(0, len(src_speaker_spec), seg_len):
+			if idx + (seg_len*2) > len(src_speaker_spec):
+				spec_frag = src_speaker_spec[idx:-1]
+			else:
+				spec_frag = src_speaker_spec[idx:idx+seg_len]
 
-		if len(spec_frag) >= seg_len:
-			converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
-			converted_results.append(converted_x)
-			encodings.append(enc)
-		elif idx == 0:
-			raise RuntimeError('Please check if input is too short!')
+			if len(spec_frag) >= seg_len:
+				converted_x, enc = convert_x(spec_frag, speaker2id[tar_speaker], trainer, enc_only=enc_only)
+				converted_results.append(converted_x)
+				encodings.append(enc)
+			elif idx == 0:
+				raise RuntimeError('Please check if input is too short!')
 
-	converted_results = np.concatenate(converted_results, axis=0)
-	encodings = np.concatenate(encodings, axis=0)
+		converted_results = np.concatenate(converted_results, axis=0)
+		encodings = np.concatenate(encodings, axis=0)
 
 	wav_data = spectrogram2wav(converted_results)
 	if save:
