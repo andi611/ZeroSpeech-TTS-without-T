@@ -15,7 +15,7 @@ import argparse
 from hps.hps import Hps
 from trainer import Trainer
 from preprocess import preprocess
-from convert import test_from_list, cross_test, test_single, target_classify, get_trainer
+from convert import test_from_list, cross_test, test_single, test_encode, target_classify, get_trainer
 from dataloader import Dataset, DataLoader
 
 
