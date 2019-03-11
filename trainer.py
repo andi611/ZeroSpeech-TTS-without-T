@@ -127,23 +127,24 @@ class Trainer(object):
 		if verbose: print('[Trainer] - ', end = '')
 		if 'encoder' in load_model_list:
 			self.Encoder.load_state_dict(all_model['encoder'])
-			if verbose: print('encoder ', end = '')
+			if verbose: print('[encoder], ', end = '')
 		if 'decoder' in load_model_list:
 			self.Decoder.load_state_dict(all_model['decoder'])
-			if verbose: print('decoder ', end = '')
+			if verbose: print('[decoder], ', end = '')
 		if 'generator' in load_model_list:
 			self.Generator.load_state_dict(all_model['generator'])
-			if verbose: print('generator ', end = '')
+			if verbose: print('[generator], ', end = '')
 		if 'classifier' in load_model_list:
 			self.SpeakerClassifier.load_state_dict(all_model['classifier'])
-			if verbose: print('classifier ', end = '')
+			if verbose: print('[classifier], ', end = '')
 		if 'patch_discriminator' in load_model_list:
 			self.PatchDiscriminator.load_state_dict(all_model['patch_discriminator'])
-			if verbose: print('patch_discriminator ', end = '')
+			if verbose: print('[patch_discriminator], ', end = '')
 		if 'target_classifier' in load_model_list:
 			self.TargetClassifier.load_state_dict(all_model['target_classifier'])
-			if verbose: print('target_classifier ', end = '')
-		if verbose: print('loaded')
+			if verbose: print('[target_classifier], ', end = '')
+		if verbose: print('Loaded!')
+
 
 	def add_duo_loader(self, source_loader, target_loader):
 		self.source_loader = source_loader
