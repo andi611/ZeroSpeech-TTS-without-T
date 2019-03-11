@@ -310,7 +310,7 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 				
 			if len(src_speaker_spec) <= seg_len:
 				encodings = encode_x(src_speaker_spec, trainer)
-				if len(encodings) == 2: encodings = [encodings[0]] # truncate the encoding of zero paddings
+				if len(src_speaker_spec) == MIN_LEN: encodings = [encodings[0]] # truncate the encoding of zero paddings
 
 			else:
 				encodings = []
