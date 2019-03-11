@@ -291,14 +291,15 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 
 			src_speaker_spec = f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()]
 			
-			# padding spec
-			min_l = 16
+			# pad spec to minimum len
+			min_l = 9
 			if len(src_speaker_spec) < min_l:
 				padding = np.zeros((min_l - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
 				src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
 				
 			if len(src_speaker_spec) <= seg_len:
 				encodings = encode_x(src_speaker_spec, trainer)
+				if len(encodings) == 2: encodings = [encodings[0]] # truncate the encoding of zero paddings
 
 			else:
 				encodings = []
