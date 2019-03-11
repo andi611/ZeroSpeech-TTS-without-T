@@ -71,6 +71,7 @@ if __name__ == '__main__':
 		args.g_mode = hps.g_mode 
 	if args.enc_mode == 'set_from_hps':
 		args.enc_mode = hps.enc_mode 
+	print('Generation mode: ', 'autoencoder only' if args.enc_only else 'with generator')
 	print('Generator mode: ', args.g_mode)
 	print('Encoder mode: ', args.enc_mode)
 
