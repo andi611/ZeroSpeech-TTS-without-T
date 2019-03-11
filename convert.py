@@ -123,7 +123,7 @@ def convert(trainer,
 			enc_only=True,
 			save=['wav', 'enc']): 
 	
-	if len(src_speaker_spec) < seg_len:
+	if len(src_speaker_spec) <= seg_len:
 		converted_results, encodings = convert_x(src_speaker_spec, speaker2id[tar_speaker], trainer, enc_only=enc_only)
 
 	else:
@@ -287,11 +287,17 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 	os.makedirs(dir_path, exist_ok=True)
 
 	with h5py.File(data_path, 'r') as f_h5:
-		for feed in feeds:
+		for feed in tqdm(feeds):
 
 			src_speaker_spec = f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()]
-
-			if len(src_speaker_spec) < seg_len:
+			
+			# padding spec
+			min_l = 16
+			if len(src_speaker_spec) < min_l:
+				padding = np.zeros((min_l - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
+				src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
+				
+			if len(src_speaker_spec) <= seg_len:
 				encodings = encode_x(src_speaker_spec, trainer)
 
 			else:
@@ -303,14 +309,14 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 						spec_frag = src_speaker_spec[idx:idx+seg_len]
 
 					if len(spec_frag) >= seg_len:
-						enc = convert_x(spec_frag, trainer)
+						enc = encode_x(spec_frag, trainer)
 						encodings.append(enc)
 					elif idx == 0:
 						raise RuntimeError('Please check if input is too short!')
 
 				encodings = np.concatenate(encodings, axis=0)
 
-			enc_path = os.path.join(result_dir, f"{feed['s_id']}_{feed['utt_id']}.txt")
+			enc_path = os.path.join(dir_path, f"{feed['s_id']}_{feed['utt_id']}.txt")
 			write_encoding(enc_path, encodings)
 
 
