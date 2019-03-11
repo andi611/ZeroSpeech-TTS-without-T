@@ -66,6 +66,10 @@ def argument_runner():
 	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-s2-150000', help='the model to restore for testing, the command --test will load this model')
 	args = parser.parse_args()
 
+	#---get hps---#
+	HPS = Hps(args.hps_path)
+	hps = HPS.get_tuple()
+
 	#---reparse if switching dataset---#
 	if args.dataset == 'surprise':
 		for arg, value in vars(args).items():
@@ -74,20 +78,16 @@ def argument_runner():
 					if action.dest == arg:
 						action.default = value.replace('english', 'surprise')
 		args = parser.parse_args()
-	print('Dataset: ', args.dataset)
+	print('[Runner] - Dataset: ', args.dataset)
 	
-	#---get hps---#
-	HPS = Hps(args.hps_path)
-	hps = HPS.get_tuple()
-
 	#---show current mode---#
 	if args.g_mode == 'set_from_hps':
 		args.g_mode = hps.g_mode 
 	if args.enc_mode == 'set_from_hps':
 		args.enc_mode = hps.enc_mode 
-	print('Generation mode: ', 'autoencoder only' if args.enc_only else 'with generator')
-	print('Generator mode: ', args.g_mode)
-	print('Encoder mode: ', args.enc_mode)
+	print('[Runner] - Generation mode: ', 'autoencoder only' if args.enc_only else 'with generator')
+	print('[Runner] - Generator mode: ', args.g_mode)
+	print('[Runner] - Encoder mode: ', args.enc_mode)
 
 	return args, hps
 
