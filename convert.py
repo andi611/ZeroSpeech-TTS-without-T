@@ -34,6 +34,7 @@ from preprocess import get_spectrograms
 ############
 MIN_LEN = 9
 
+
 def griffin_lim(spectrogram): # Applies Griffin-Lim's raw.
 	
 	def _invert_spectrogram(spectrogram): # spectrogram: [f, t]
@@ -128,8 +129,7 @@ def convert(trainer,
 			enc_only=True,
 			save=['wav', 'enc']): 
 	
-				# pad spec to minimum len
-	MIN_LEN = 9
+	# pad spec to minimum len
 	if len(src_speaker_spec) < MIN_LEN:
 		padding = np.zeros((MIN_LEN - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
 		src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
@@ -304,7 +304,6 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 			src_speaker_spec = f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()]
 			
 			# pad spec to minimum len
-			MIN_LEN = 9
 			if len(src_speaker_spec) < MIN_LEN:
 				padding = np.zeros((MIN_LEN - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
 				src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
