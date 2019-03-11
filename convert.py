@@ -292,7 +292,7 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 			src_speaker_spec = f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()]
 
 			if len(src_speaker_spec) < seg_len:
-				encodings = encode_x(x, trainer)
+				encodings = encode_x(src_speaker_spec, trainer)
 
 			else:
 				encodings = []
