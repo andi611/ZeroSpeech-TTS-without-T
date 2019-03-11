@@ -18,7 +18,14 @@ from dataloader import DataLoader, Dataset
 from discrete import discrete_main
 from hps.hps import Hps
 from preprocess import preprocess
+<<<<<<< HEAD
 from trainer import Trainer
+=======
+from convert import test, test_single, get_trainer
+from dataloader import Dataset, DataLoader
+from discrete import discrete_main
+
+>>>>>>> 5142c15d9cf06b47e80c54b96ec2402a8d054cc8
 
 if __name__ == '__main__':
 	
@@ -32,10 +39,12 @@ if __name__ == '__main__':
 
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
-	static_setting.add_argument('--resample', type=bool, default=True, help='whether to just process the sampling procedure in the preprocessing process')
-	static_setting.add_argument('--targeted_G', type=bool, default=True, help='G can only convert to target speakers and not all speakers')
-	static_setting.add_argument('--one_hot', type=bool, default=True, help='Set the encoder to encode to symbolic discrete one-hot vectors')
-	static_setting.add_argument('--enc_only', type=bool, default=True, help='whether to predict only with stage 1 audoencoder')
+	static_setting.add_argument('--remake', type=bool, default=bool(0), help='whether to remake dataset.hdf5')
+	static_setting.add_argument('--targeted_G', type=bool, default=bool(1), help='G can only convert to target speakers and not all speakers')
+	static_setting.add_argument('--one_hot', type=bool, default=bool(0), help='Set the encoder to encode to symbolic discrete one-hot vectors')
+	static_setting.add_argument('--binary_output', type=bool, default=bool(1), help='Set the encoder to produce binary 1/0 output vectors')
+	static_setting.add_argument('--binary_ver', type=int, default=0, help='Set the binary type of the encoder output')
+	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V001', help='for the --test_single mode, set voice convergence target speaker')
 	static_setting.add_argument('--n_clusters', type=int, default=500, help='how many subword units to use')
@@ -94,8 +103,8 @@ if __name__ == '__main__':
 		model_path = os.path.join(args.ckpt_dir, args.model_name)
 
 		#---initialize trainer---#
-		trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot)
-		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), model_all=True)
+		trainer = Trainer(hps, data_loader, args.targeted_G, args.one_hot, args.binary_output, args.binary_ver)
+		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), model_all=False)
 
 		if args.train:
 			trainer.train(model_path, args.flag, mode='pretrain_AE') # Stage 1 pre-train: encoder-decoder reconstruction
@@ -109,7 +118,7 @@ if __name__ == '__main__':
 
 		os.makedirs(args.result_dir, exist_ok=True)
 		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
-		trainer = get_trainer(args.hps_path, model_path, args.targeted_G, args.one_hot)
+		trainer = get_trainer(args.hps_path, model_path, args.targeted_G, args.one_hot, args.binary_output, args.binary_ver)
 
 		if args.test:
 			test(trainer, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, args.flag)
@@ -117,6 +126,7 @@ if __name__ == '__main__':
 			test_single(trainer, args.speaker2id_path, args.result_dir, args.enc_only, args.s_speaker, args.t_speaker)
 
 
+<<<<<<< HEAD
 	if args.discrete:
 		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
 		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
@@ -128,4 +138,6 @@ if __name__ == '__main__':
 		kmeans, look_up = clustering(encoded, n_clusters=args.n_clusters)
 		train_discrete_decoder(trainer, look_up, model_path)
 
+=======
+>>>>>>> 5142c15d9cf06b47e80c54b96ec2402a8d054cc8
 	discrete_main(args)
