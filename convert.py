@@ -32,7 +32,7 @@ from preprocess import get_spectrograms
 ############
 # CONSTANT #
 ############
-MIN_LEN = 9
+MIN_LEN = 9 if Hps.enc_mode != 'gumbel_t' else Hps.seg_len
 
 
 def griffin_lim(spectrogram): # Applies Griffin-Lim's raw.
@@ -130,13 +130,16 @@ def convert(trainer,
 			save=['wav', 'enc']): 
 	
 	# pad spec to minimum len
+	PADDED = False
 	if len(src_speaker_spec) < MIN_LEN:
 		padding = np.zeros((MIN_LEN - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
 		src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
+		PADDED = True
 		
 	if len(src_speaker_spec) <= seg_len:
 		converted_results, encodings = convert_x(src_speaker_spec, speaker2id[tar_speaker], trainer, enc_only=enc_only)
-		if len(encodings) == 2: encodings = [encodings[0]] # truncate the encoding of zero paddings
+		if PADDED: 
+			encodings = encodings[:MIN_LEN//8] # truncate the encoding of zero paddings
 
 	else:
 		converted_results = []
@@ -304,13 +307,16 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 			src_speaker_spec = f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()]
 			
 			# pad spec to minimum len
+			PADDED = False
 			if len(src_speaker_spec) < MIN_LEN:
 				padding = np.zeros((MIN_LEN - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
 				src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
+				PADDED = True
 				
 			if len(src_speaker_spec) <= seg_len:
 				encodings = encode_x(src_speaker_spec, trainer)
-				if len(src_speaker_spec) == MIN_LEN: encodings = [encodings[0]] # truncate the encoding of zero paddings
+				if PADDED: 
+					encodings = encodings[:MIN_LEN//8] # truncate the encoding of zero paddings
 
 			else:
 				encodings = []
