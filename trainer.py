@@ -161,10 +161,14 @@ class Trainer(object):
 		self.testing_shift_c = Variable(torch.from_numpy(np.array([int(self.hps.n_speakers-self.hps.n_target_speakers)]))).cuda()
 		self.Encoder.eval()
 		self.Decoder.eval()
-		self.Generator.eval()
 		self.SpeakerClassifier.eval()
 		self.PatchDiscriminator.eval()
 		self.TargetClassifier.eval()
+		if self.g_mode == 'tacotron': # keep dropout in Tacotron's decoder
+			self.Generator.encoder.eval()
+			self.Generator.postnet.eval()
+		else:
+			self.Generator.eval()
 
 
 	def test_step(self, x, c, enc_only=False, verbose=True):
@@ -541,6 +545,7 @@ class Trainer(object):
 				
 				# classification
 				logits = self.tclf_step(x_t)
+				
 				# classification loss 
 				loss = self.cal_loss(logits, c-self.shift_c)
 				reset_grad([self.TargetClassifier])
@@ -565,15 +570,22 @@ class Trainer(object):
 			print()
 
 		elif mode == 'train_Tacotron':
+			
 			assert self.g_mode == 'tacotron'
 			criterion = TacotronLoss()
+
 			for iteration in range(hps.tacotron_iters):
+			#======train tacotron======#
 				data = next(self.data_loader)
 				c, x, m = self.permute_data(data, load_mel=True)
 				
 				# encode
 				enc_act, enc = self.encode_step(x)
+
+				# tacotron synthesis
 				m_dec, x_dec = self.tacotron_step(enc_act, m, c)
+				
+				# reconstruction loss 
 				loss_rec = criterion([m_dec, x_dec], [m, x])
 				reset_grad([self.Generator])
 				loss_rec.backward()
