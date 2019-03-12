@@ -27,7 +27,7 @@ class TacotronLoss(nn.Module):
 		self.prior_freq = hp.prior_freq
 		self.prior_weight = hp.prior_weight
 
-		self.criterion = nn.MSELoss()
+		self.criterion = nn.L1Loss()
 
 	def forward(self, model_output, targets):
 		# input shape: (B, in_dim, T)
