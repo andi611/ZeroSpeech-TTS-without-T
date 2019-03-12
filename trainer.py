@@ -256,6 +256,8 @@ class Trainer(object):
 			x_gen = x_dec + self.Generator(enc, c - self.shift_c)
 		elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 			x_gen = x_dec + self.Generator(x_dec, c - self.shift_c)
+		else:
+			raise NotImplementedError('Invalid generator mode to call gen_step()!')
 		return x_gen 
 
 
