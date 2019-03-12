@@ -60,6 +60,7 @@ class Dataset(data.Dataset):
 		self.indexer = namedtuple('index', ['speaker', 'i', 't'])
 		self.seg_len = seg_len
 		self.dset = dset
+		self.load_mel = load_mel
 
 	def __getitem__(self, i):
 		index = self.indexes[i]
@@ -67,7 +68,7 @@ class Dataset(data.Dataset):
 		speaker = index.speaker
 		i, t = index.i, index.t
 		seg_len = self.seg_len
-		if load_mel:
+		if self.load_mel:
 			data = [speaker, self.dataset[f'{self.dset}/{i}/lin'][t:t+seg_len], self.dataset[f'{self.dset}/{i}/mel'][t:t+seg_len]]
 		else:
 			data = [speaker, self.dataset[f'{self.dset}/{i}/lin'][t:t+seg_len]]

@@ -15,6 +15,7 @@ import pickle
 import numpy as np
 import torch
 import torch.nn.functional as F
+from hps.hps import hp
 from torch import nn
 from torch import optim
 from torch.autograd import Variable
@@ -79,8 +80,8 @@ class Trainer(object):
 		elif self.g_mode == 'spectrogram':
 			self.Generator = cc(Patcher(ns=ns, c_in=513, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		elif self.g_mode == 'tacotron':
-			self.Generator = cc(Tacotron())
-			self.tacotron_input_lengths = [self.hps.seg_len//8 for _ in self.batch_size]
+			self.Generator = cc(Tacotron(enc_size, hps.n_speakers, mel_dim=hp.n_mels, linear_dim=int(hp.n_fft/2)+1))
+			self.tacotron_input_lengths = torch.tensor([self.hps.seg_len//8 for _ in range(hps.batch_size)])
 		else:
 			raise NotImplementedError('Invalid Generator mode!')
 			
@@ -185,7 +186,7 @@ class Trainer(object):
 			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
 			elif self.g_mode == 'tacotron':
-				_, x_dec = self.Generator(enc, target=None, c)
+				_, x_dec = self.Generator(enc, target=None, speaker_id=c, input_lengths=self.tacotron_input_lengths)
 			else:
 				raise NotImplementedError('Invalid Generator mode!')
 		else:

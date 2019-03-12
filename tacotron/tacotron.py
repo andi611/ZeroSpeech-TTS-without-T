@@ -13,9 +13,9 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
-from model.attention import BahdanauAttention, LocationSensitiveAttention
-from model.attention import AttentionRNN
-from model.loss import get_rnn_mask_from_lengths
+from tacotron.attention import BahdanauAttention, LocationSensitiveAttention
+from tacotron.attention import AttentionRNN
+from tacotron.loss import get_rnn_mask_from_lengths
 
 
 ##########
@@ -190,7 +190,7 @@ class Decoder(nn.Module):
 		
 		self.attention = attention
 		if self.attention == 'Bahdanau':
-			self.attention_rnn = AttentionRNNh(nn.GRUCell(256 + 128, 256), 
+			self.attention_rnn = AttentionRNN(nn.GRUCell(256 + 128, 256), 
 											   BahdanauAttention(256), 
 											   attention='Bahdanau')
 		elif self.attention == 'LocationSensitive':
@@ -242,7 +242,7 @@ class Decoder(nn.Module):
 	def forward(self, encoder_outputs, inputs=None, memory_lengths=None):
 
 		greedy = inputs is None # Run greedy decoding if inputs is None
-
+		
 		if inputs is not None:
 			if inputs.size(-1) == self.in_dim:
 				inputs = inputs.view(encoder_outputs.size(0), inputs.size(1) // self.r, -1)  # Grouping multiple frames if necessary
@@ -341,7 +341,7 @@ def is_end_of_frames(output, eps=0.2):
 class Tacotron(nn.Module):
 	
 	def __init__(self, enc_size, n_spk, embedding_dim=256, mel_dim=80, linear_dim=1025,
-				 r=5, attention='Bahdanau', use_mask=False):
+				 r=4, attention='Bahdanau', use_mask=False):
 		
 		super(Tacotron, self).__init__()
 		self.mel_dim = mel_dim
@@ -361,28 +361,40 @@ class Tacotron(nn.Module):
 
 	def forward(self, inputs, targets=None, speaker_id=None, input_lengths=None):
 		# inputs shape: (B, enc_size, T)
-		# targets shape: (B, in_dim, T)
+		# targets shape: (B, mel_dim, T)
 		# speaker_id shape: (B, ), type: int
 		# input_lengths shape: (B, ), type: int
 		
-		inputs = 
-		targets = targets.permute(0, 2, 1) # shape: (B, T, in_dim)
+		# input embedding
 		B = inputs.size(0)
-
-		inputs = self.embedding(inputs)
+		hidden_dim = inputs.size(1)
+		seg_len = inputs.size(2)
+		inp_expand = inputs.permute(0, 2, 1).contiguous().view(B*seg_len, hidden_dim)
+		emb_expand = self.linear(inp_expand) # (B*T, embedding_dim)
+		emb_permuted = emb_expand.view(B, seg_len, emb_expand.size(1))
+		inp_emb = emb_permuted # (B, T, embedding_dim)
 		
-		encoder_outputs = self.encoder(inputs, input_lengths) # (B, T', in_dim)
+		# target embedding
+		speaker_id = self.embedding(speaker_id) # (B, embedding_dim)
+		speaker_id = speaker_id.unsqueeze(1).expand(speaker_id.size(0), seg_len, speaker_id.size(1)) # (B, T, embedding_dim)
+		
+		# permute target
+		targets = targets.permute(0, 2, 1) # (B, T, mel_dim)
 
+		# encode
+		encoder_outputs = self.encoder(inp_emb, input_lengths) # (B, T, embedding_dim)
+		
+		# concatenate speaker embedding
+		decoder_inputs = encoder_outputs+speaker_id # torch.cat((encoder_outputs, speaker_id), 2) # (B, T, embedding_dim)
+		
+		# decode
 		if self.use_mask: memory_lengths = input_lengths
 		else: memory_lengths = None
+		mel_outputs, alignments, _ = self.decoder(decoder_inputs, targets, memory_lengths=memory_lengths) # (B, T/r, mel_dim*r)
 		
-		mel_outputs, alignments, _ = self.decoder(encoder_outputs, targets, memory_lengths=memory_lengths) # (B, T', mel_dim*r)
-
 		# Post net processing below
-
-		mel_outputs = mel_outputs.view(B, -1, self.mel_dim) # Reshape: (B, T, mel_dim)
-
+		mel_outputs = mel_outputs.view(B, -1, self.mel_dim) # (B, T, mel_dim)
 		linear_outputs = self.postnet(mel_outputs)
-		linear_outputs = self.last_linear(linear_outputs)
+		linear_outputs = self.last_linear(linear_outputs) # (B, T, linear_dim)
 
-		return mel_outputs, linear_outputs, alignments
+		return mel_outputs.permute(0, 2, 1).contiguous(), linear_outputs.permute(0, 2, 1).contiguous()

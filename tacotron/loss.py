@@ -34,9 +34,6 @@ class TacotronLoss(nn.Module):
 		mel_outputs, mel = model_output[0], targets[0]
 		linear_outputs, linear = model_output[1], targets[1]
 
-		mel.requires_grad = False
-		linear.requires_grad = False
-
 		mel_loss = self.criterion(mel_outputs, mel)
 		n_priority_freq = int(self.prior_freq / (self.sample_rate * 0.5) * self.linear_dim)
 		linear_loss = (1 - self.prior_weight) * self.criterion(linear_outputs, linear) + self.prior_weight * self.criterion(linear_outputs[:, :n_priority_freq, :], linear[:, :n_priority_freq, :])
