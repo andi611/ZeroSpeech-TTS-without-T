@@ -53,7 +53,7 @@ class DataLoader(object):
 
 
 class Dataset(data.Dataset):
-	def __init__(self, h5_path, index_path, dset='train', seg_len=64):
+	def __init__(self, h5_path, index_path, dset='train', seg_len=64, load_mel=False):
 		self.dataset = h5py.File(h5_path, 'r')
 		with open(index_path) as f_index:
 			self.indexes = json.load(f_index)
@@ -67,7 +67,10 @@ class Dataset(data.Dataset):
 		speaker = index.speaker
 		i, t = index.i, index.t
 		seg_len = self.seg_len
-		data = [speaker, self.dataset[f'{self.dset}/{i}/lin'][t:t+seg_len]]
+		if load_mel:
+			data = [speaker, self.dataset[f'{self.dset}/{i}/lin'][t:t+seg_len], self.dataset[f'{self.dset}/{i}/mel'][t:t+seg_len]]
+		else:
+			data = [speaker, self.dataset[f'{self.dset}/{i}/lin'][t:t+seg_len]]
 		return tuple(data)
 
 	def __len__(self):
