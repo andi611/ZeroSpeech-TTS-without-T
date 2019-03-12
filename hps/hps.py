@@ -31,6 +31,8 @@ class processing_hyperparams(object):
 		self.preemphasis = .97 # or None
 		self.max_db = 100
 		self.ref_db = 20
+		self.prior_freq = 3000
+		self.prior_weight = 0.5
 hp = processing_hyperparams()
 
 
@@ -66,6 +68,7 @@ class Hps(object):
 			'dis_pretrain_iters',
 			'patch_iters', 
 			'iters',
+			'tacotron_iters',
 			'tclf_iters',
 			'max_to_keep',
 			]

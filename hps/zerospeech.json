@@ -1,7 +1,7 @@
 {
 	"g_mode": "enhanced",
 	"enc_mode": "multilabel_binary",
-	"load_model_list": "encoder, decoder, generator, classifier, patch_discriminator, target_classifier",
+	"load_model_list": "encoder, decoder, target_classifier",
 	"lr": 0.0001,
 	"alpha_dis": 1,
 	"alpha_enc": 0.01,
@@ -14,9 +14,9 @@
 	"dis_dp": 0.3,
 	"max_grad_norm": 5,
 	"max_step": 5,
-	"seg_len": 32,
+	"seg_len": 128,
 	"n_samples": 400000,
-	"enc_size": 1024,
+	"enc_size": 64,
 	"emb_size": 1024,
 	"n_speakers": 102,
 	"n_target_speakers": 2,
@@ -24,10 +24,11 @@
 	"n_patch_steps": 5,
 	"batch_size": 16,
 	"lat_sched_iters": 50000,
-	"enc_pretrain_iters": 200000,
+	"enc_pretrain_iters": 400000,
 	"dis_pretrain_iters": 20000,
 	"patch_iters": 50000,
 	"iters": 100000,
+	"tacotron_iters": 200000,
 	"tclf_iters": 10000,
 	"max_to_keep": 10
 }
