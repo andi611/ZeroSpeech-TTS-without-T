@@ -190,11 +190,12 @@ class Trainer(object):
 			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
 			elif self.g_mode == 'tacotron':
-				_, x_dec = self.Generator(enc, target=None, speaker_id=c, input_lengths=self.tacotron_input_lengths)
+				_, x_dec = self.Generator(enc, targets=None, speaker_id=c, input_lengths=None)
 			else:
 				raise NotImplementedError('Invalid Generator mode!')
 		else:
 			if verbose: print('Testing with Autoencoder only, encoding: ', enc.data.cpu().numpy())
+		
 		return x_dec.data.cpu().numpy(), enc.data.cpu().numpy()
 
 

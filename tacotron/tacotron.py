@@ -239,10 +239,11 @@ class Decoder(nn.Module):
 			inputs: Decoder inputs. i.e., mel-spectrogram. If None (at eval-time), decoder outputs are used as decoder inputs.
 			memory_lengths: Encoder output (memory) lengths. If not None, used for attention masking.
 	"""
-	def forward(self, encoder_outputs, inputs=None, memory_lengths=None):
+	def forward(self, encoder_outputs, inputs=None, memory_lengths=None, T_decoder=None):
 
 		greedy = inputs is None # Run greedy decoding if inputs is None
 		
+		T_decoder = T_decoder*8//self.r
 		if inputs is not None:
 			if inputs.size(-1) == self.in_dim:
 				inputs = inputs.view(encoder_outputs.size(0), inputs.size(1) // self.r, -1)  # Grouping multiple frames if necessary
@@ -253,9 +254,8 @@ class Decoder(nn.Module):
 
 		processed_memory = self.attention_rnn.memory_layer(encoder_outputs)
 		self.initialize_decoder_states(encoder_outputs, processed_memory, memory_lengths)
-			
+		
 		t = 0
-		gates = []
 		outputs = []
 		alignments = []
 		current_input = self.initial_input
@@ -292,39 +292,23 @@ class Decoder(nn.Module):
 				decoder_input = self.decoder_rnn_hiddens[idx] + decoder_input # Residual connectinon
 
 			output = decoder_input
-			gate = self.sigmoid(self.proj_to_gate(output)).squeeze()
 			output = self.proj_to_mel(output)
 
 			outputs += [output]
 			alignments += [alignment]
-			gates += [gate]
-
 			t += 1
 
-			# testing 
-			if greedy:
-				if t > 1 and is_end_of_gates(gate):
-					print('Terminated by gate!')
-					break
-				elif t > 1 and is_end_of_frames(output):
-					print('Terminated by silent frames!')
-					break
-				elif t > self.max_decoder_steps:
-					print('Warning! doesn\'t seems to be converged')
-					break
-			# training
-			else:
-				if t >= T_decoder:
-					break
+			# when to stop
+			if t >= T_decoder:
+				break
 
 		assert greedy or len(outputs) == T_decoder
 		
 		# Back to batch first: (T_out, B) -> (B, T_out)
 		alignments = torch.stack(alignments).transpose(0, 1)
 		outputs = torch.stack(outputs).transpose(0, 1).contiguous()
-		gates = torch.stack(gates).transpose(0, 1).contiguous()
 
-		return outputs, alignments, gates
+		return outputs, alignments
 
 
 def is_end_of_gates(gate, thd=0.5):
@@ -365,7 +349,6 @@ class Tacotron(nn.Module):
 		# targets shape: (B, mel_dim, T)
 		# speaker_id shape: (B, ), type: int
 		# input_lengths shape: (B, ), type: int
-		
 		# input embedding
 		B = inputs.size(0)
 		hidden_dim = inputs.size(1)
@@ -379,7 +362,7 @@ class Tacotron(nn.Module):
 		speaker_id = speaker_id.unsqueeze(1).expand(speaker_id.size(0), seg_len, speaker_id.size(1)) # (B, T, embedding_dim)
 		
 		# permute target
-		targets = targets.permute(0, 2, 1) # (B, T, mel_dim)
+		targets = targets.permute(0, 2, 1) if targets != None else targets # (B, T, mel_dim)
 
 		# encode
 		encoder_outputs = self.encoder(inp_emb, input_lengths) # (B, T, embedding_dim)
@@ -391,11 +374,11 @@ class Tacotron(nn.Module):
 		# decode
 		if self.use_mask: memory_lengths = input_lengths
 		else: memory_lengths = None
-		mel_outputs, alignments, _ = self.decoder(decoder_inputs, targets, memory_lengths=memory_lengths) # (B, T/r, mel_dim*r)
+		mel_outputs, alignments = self.decoder(decoder_inputs, targets,
+												memory_lengths=memory_lengths, T_decoder = seg_len) # (B, T/r, mel_dim*r)
 		
 		# Post net processing below
 		mel_outputs = mel_outputs.view(B, -1, self.mel_dim) # (B, T, mel_dim)
 		linear_outputs = self.postnet(mel_outputs)
 		linear_outputs = self.last_linear(linear_outputs) # (B, T, linear_dim)
-
 		return mel_outputs.permute(0, 2, 1).contiguous(), linear_outputs.permute(0, 2, 1).contiguous()
