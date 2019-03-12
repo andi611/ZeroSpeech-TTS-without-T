@@ -340,15 +340,17 @@ def is_end_of_frames(output, eps=0.2):
 ############
 class Tacotron(nn.Module):
 	
-	def __init__(self, n_vocab, embedding_dim=256, mel_dim=80, linear_dim=1025,
-				 r=5, padding_idx=None, attention='Bahdanau', use_mask=False):
+	def __init__(self, enc_size, n_spk, embedding_dim=256, mel_dim=80, linear_dim=1025,
+				 r=5, attention='Bahdanau', use_mask=False):
 		
 		super(Tacotron, self).__init__()
 		self.mel_dim = mel_dim
 		self.linear_dim = linear_dim
 		self.use_mask = use_mask
 		
-		self.embedding = nn.Embedding(n_vocab, embedding_dim, padding_idx=padding_idx)
+		self.linear = nn.Linear(enc_size, embedding_dim)
+		
+		self.embedding = nn.Embedding(n_spk, embedding_dim)
 		self.embedding.weight.data.normal_(0, 0.3) # Trying smaller std
 		
 		self.encoder = Encoder(embedding_dim)
@@ -357,9 +359,14 @@ class Tacotron(nn.Module):
 		self.postnet = CBHG(mel_dim, K=8, projections=[256, mel_dim])
 		self.last_linear = nn.Linear(mel_dim * 2, linear_dim)
 
-	def forward(self, inputs, targets=None, input_lengths=None):
+	def forward(self, inputs, targets=None, speaker_id=None, input_lengths=None):
 		# inputs shape: (B, enc_size, T)
 		# targets shape: (B, in_dim, T)
+		# speaker_id shape: (B, ), type: int
+		# input_lengths shape: (B, ), type: int
+		
+		inputs = 
+		targets = targets.permute(0, 2, 1) # shape: (B, T, in_dim)
 		B = inputs.size(0)
 
 		inputs = self.embedding(inputs)
