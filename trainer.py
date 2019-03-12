@@ -170,7 +170,8 @@ class Trainer(object):
 		self.set_eval()
 		x = to_var(x).permute(0, 2, 1)
 		enc, _ = self.Encoder(x)
-		x_dec = self.Decoder(enc, c)
+		if enc_only or self.g_mode != 'tacotron': 
+			x_dec = self.Decoder(enc, c)
 		if not enc_only:
 			if verbose: print('Testing with Autoencoder + Generator, encoding: ', enc.data.cpu().numpy())
 			if self.g_mode != 'naive' and (c - self.testing_shift_c).data.cpu().numpy()[0] not in range(self.hps.n_target_speakers):
