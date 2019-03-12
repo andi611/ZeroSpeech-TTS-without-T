@@ -32,7 +32,7 @@ from preprocess import get_spectrograms
 ############
 # CONSTANT #
 ############
-MIN_LEN = 9 if Hps.enc_mode != 'gumbel_t' else Hps.seg_len
+MIN_LEN = 9
 
 
 def griffin_lim(spectrogram): # Applies Griffin-Lim's raw.
@@ -85,6 +85,8 @@ def encode_x(x, trainer):
 def get_trainer(hps_path, model_path, g_mode, enc_mode):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
+	global MIN_LEN
+	MIN_LEN = MIN_LEN if hps.enc_mode != 'gumbel_t' else hps.seg_len
 	trainer = Trainer(hps, None, g_mode, enc_mode)
 	trainer.load_model(model_path, load_model_list = hps.load_model_list)
 	return trainer
@@ -182,7 +184,7 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 	with open(synthesis_list, 'r') as f:
 		file = f.readlines()
 		for line in file:
-			line = line.split(' ')
+			line = line.split('\n')[0].split(' ')
 			feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
 						  'utt_id' : line[0].split('/')[1].split('_')[1], 
 						  't_id' : line[1], })
