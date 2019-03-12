@@ -596,7 +596,7 @@ class Trainer(object):
 				info = {
 					f'{flag}/tacotron_loss_rec': loss_rec.item(),
 				}
-				slot_value = (iteration + 1, hps.enc_pretrain_iters) + tuple([value for value in info.values()])
+				slot_value = (iteration + 1, hps.tacotron_iters) + tuple([value for value in info.values()])
 				log = 'train_Tacotron:[%06d/%06d], loss_rec=%.3f'
 				print(log % slot_value, end='\r')
 				
