@@ -23,6 +23,8 @@ from model import TargetClassifier
 from model import SpeakerClassifier
 from model import PatchDiscriminator
 from model import Enhanced_Generator, Patcher
+from tacotron.tacotron import Tacotron
+from tacotron.loss import TacotronLoss
 from utils import Logger, cc, to_var
 from utils import grad_clip, reset_grad
 from utils import calculate_gradients_penalty
@@ -76,6 +78,9 @@ class Trainer(object):
 			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=1024, emb_size=1024, seg_len=seg_len, n_speakers=hps.n_speakers))
 		elif self.g_mode == 'spectrogram':
 			self.Generator = cc(Patcher(ns=ns, c_in=513, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
+		elif self.g_mode == 'tacotron':
+			self.Generator = cc(Tacotron())
+			self.tacotron_input_lengths = [self.hps.seg_len//8 for _ in self.batch_size]
 		else:
 			raise NotImplementedError('Invalid Generator mode!')
 			
@@ -178,6 +183,8 @@ class Trainer(object):
 				x_dec += self.Generator(enc, c - self.testing_shift_c)
 			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
+			elif self.g_mode == 'tacotron':
+				_, x_dec = self.Generator(enc, target=None, c)
 			else:
 				raise NotImplementedError('Invalid Generator mode!')
 		else:
@@ -196,12 +203,15 @@ class Trainer(object):
 		self.set_eval()
 		x = to_var(x).permute(0, 2, 1)
 		logits = self.TargetClassifier(x)
-		return logits.detach().cpu().numpy()
+		return logits.data.cpu().numpy()
 		
 
-	def permute_data(self, data):
+	def permute_data(self, data, load_mel=False):
 		C = to_var(data[0], requires_grad=False)
 		X = to_var(data[1]).permute(0, 2, 1)
+		if load_mel: 
+			M = to_var(data[2]).permute(0, 2, 1)
+			return C, X, M
 		return C, X
 
 
@@ -254,6 +264,11 @@ class Trainer(object):
 		return logits
 
 
+	def tacotron_step(self, enc, m, c):
+		m_dec, x_dec = self.Generator(enc, m, c, input_lengths=self.tacotron_input_lengths)
+		return m_dec, x_dec # mel, linear
+
+
 	def cal_loss(self, logits, y_true, shift=False):
 		# calculate loss 
 		criterion = nn.CrossEntropyLoss()
@@ -288,7 +303,7 @@ class Trainer(object):
 				loss_rec = torch.mean(torch.abs(x_dec - x))
 				reset_grad([self.Encoder, self.Decoder])
 				loss_rec.backward()
-				grad_clip([self.Encoder, self.Decoder], self.hps.max_grad_norm)
+				grad_clip([self.Encoder, self.Decoder], hps.max_grad_norm)
 				self.ae_opt.step()
 				
 				# tb info
@@ -322,7 +337,7 @@ class Trainer(object):
 				# update 
 				reset_grad([self.SpeakerClassifier])
 				loss_clf.backward()
-				grad_clip([self.SpeakerClassifier], self.hps.max_grad_norm)
+				grad_clip([self.SpeakerClassifier], hps.max_grad_norm)
 				self.clf_opt.step()
 				
 				# calculate acc
@@ -367,7 +382,7 @@ class Trainer(object):
 					# update 
 					reset_grad([self.SpeakerClassifier])
 					loss.backward()
-					grad_clip([self.SpeakerClassifier], self.hps.max_grad_norm)
+					grad_clip([self.SpeakerClassifier], hps.max_grad_norm)
 					self.clf_opt.step()
 					
 					# calculate acc
@@ -403,7 +418,7 @@ class Trainer(object):
 				loss = loss_rec - current_alpha * loss_clf
 				reset_grad([self.Encoder, self.Decoder])
 				loss.backward()
-				grad_clip([self.Encoder, self.Decoder], self.hps.max_grad_norm)
+				grad_clip([self.Encoder, self.Decoder], hps.max_grad_norm)
 				self.ae_opt.step()
 				
 				info = {
@@ -451,7 +466,7 @@ class Trainer(object):
 					loss = -hps.beta_dis * w_dis + hps.beta_clf * loss_clf + hps.lambda_ * gp
 					reset_grad([self.PatchDiscriminator])
 					loss.backward()
-					grad_clip([self.PatchDiscriminator], self.hps.max_grad_norm)
+					grad_clip([self.PatchDiscriminator], hps.max_grad_norm)
 					self.patch_opt.step()
 					
 					# calculate acc
@@ -493,7 +508,7 @@ class Trainer(object):
 				loss = hps.beta_clf * loss_clf + hps.beta_gen * loss_adv
 				reset_grad([self.Generator])
 				loss.backward()
-				grad_clip([self.Generator], self.hps.max_grad_norm)
+				grad_clip([self.Generator], hps.max_grad_norm)
 				self.gen_opt.step()
 				
 				# calculate acc
@@ -526,7 +541,7 @@ class Trainer(object):
 				loss = self.cal_loss(logits, c-self.shift_c)
 				reset_grad([self.TargetClassifier])
 				loss.backward()
-				grad_clip([self.TargetClassifier], self.hps.max_grad_norm)
+				grad_clip([self.TargetClassifier], hps.max_grad_norm)
 				self.tclf_opt.step()
 				
 				# calculate acc
@@ -544,7 +559,38 @@ class Trainer(object):
 				if (iteration + 1) % 1000 == 0:
 					self.save_model(model_path, 'tclf', iteration + 1)
 			print()
-		
+
+		elif mode == 'train_Tacotron':
+			assert self.g_mode == 'tacotron'
+			criterion = TacotronLoss()
+			for iteration in range(hps.tacotron_iters):
+				data = next(self.data_loader)
+				c, x, m = self.permute_data(data, load_mel=True)
+				
+				# encode
+				enc_act, enc = self.encode_step(x)
+				m_dec, x_dec = self.tacotron_step(enc_act, m, c)
+				loss_rec = criterion([m_dec, x_dec], [m, x])
+				reset_grad([self.Generator])
+				loss_rec.backward()
+				grad_clip([self.Generator], hps.max_grad_norm)
+				self.gen_opt.step()
+				
+				# tb info
+				info = {
+					f'{flag}/tacotron_loss_rec': loss_rec.item(),
+				}
+				slot_value = (iteration + 1, hps.enc_pretrain_iters) + tuple([value for value in info.values()])
+				log = 'train_Tacotron:[%06d/%06d], loss_rec=%.3f'
+				print(log % slot_value, end='\r')
+				
+				if iteration % 100 == 0:
+					for tag, value in info.items():
+						self.logger.scalar_summary(tag, value, iteration + 1)
+				if (iteration + 1) % 1000 == 0:
+					self.save_model(model_path, 't', iteration + 1)
+			print()
+
 		else: 
 			raise NotImplementedError()
 

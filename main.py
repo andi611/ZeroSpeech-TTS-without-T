@@ -29,6 +29,7 @@ def argument_runner():
 	parser.add_argument('--train_ae', default=False, action='store_true', help='start auto-encoder training')
 	parser.add_argument('--train_g', default=False, action='store_true', help='start generator training')
 	parser.add_argument('--train_c', default=False, action='store_true', help='start target classifier training')
+	parser.add_argument('--train_t', default=False, action='store_true', help='start tacotron training')
 	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on the testing list provided at --synthesis_list')
 	parser.add_argument('--cross_test', default=False, action='store_true', help='test the trained model on all testing files')
 	parser.add_argument('--test_single', default=False, action='store_true', help='test the trained model on a single file')
@@ -39,7 +40,7 @@ def argument_runner():
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
 	static_setting.add_argument('--remake', type=bool, default=bool(1), help='whether to remake dataset.hdf5')
-	static_setting.add_argument('--g_mode', choices=['naive', 'targeted', 'enhanced', 'spectrogram', 'set_from_hps'], default='set_from_hps', help='different stage two generator settings')
+	static_setting.add_argument('--g_mode', choices=['naive', 'targeted', 'enhanced', 'spectrogram', 'tacotron', 'set_from_hps'], default='set_from_hps', help='different stage two generator settings')
 	static_setting.add_argument('--enc_mode', choices=['continues', 'one_hot', 'binary', 'multilabel_binary', 'gumbel_t', 'set_from_hps'], default='set_from_hps', help='different output method for the encoder to generate encodings')
 	static_setting.add_argument('--enc_only', type=bool, default=bool(1), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
@@ -113,12 +114,12 @@ def main():
 				   remake=args.remake)
 
 
-	if args.train or args.train_ae or args.train_g or args.train_c:
+	if args.train or args.train_ae or args.train_g or args.train_c or args.train_t:
 		
 		#---create datasets---#
-		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
-		sourceset = Dataset(args.dataset_path, args.index_source_path, seg_len=hps.seg_len)
-		targetset = Dataset(args.dataset_path, args.index_target_path, seg_len=hps.seg_len)
+		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len, load_mel=True if args.train_t else False)
+		sourceset = Dataset(args.dataset_path, args.index_source_path, seg_len=hps.seg_len, load_mel=True if args.train_t else False)
+		targetset = Dataset(args.dataset_path, args.index_target_path, seg_len=hps.seg_len, load_mel=True if args.train_t else False)
 		
 		#---create data loaders---#
 		data_loader = DataLoader(dataset, hps.batch_size)
@@ -145,6 +146,9 @@ def main():
 		if args.train or args.train_c:	
 			trainer.add_duo_loader(source_loader, target_loader)
 			trainer.train(model_path, args.flag, mode='t_classify') 	# Target speaker classifier training
+
+		if args.train or args.train_t:
+			trainer.train(model_path, args.flag, mode='train_Tacotron')
 
 
 	if args.test or args.cross_test or args.test_single or args.test_encode or args.test_classify:
