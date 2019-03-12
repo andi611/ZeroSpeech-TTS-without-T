@@ -349,6 +349,7 @@ class Tacotron(nn.Module):
 		self.use_mask = use_mask
 		
 		self.linear = nn.Linear(enc_size, embedding_dim)
+		self.cat_linear = nn.Linear(embedding_dim*2, 256)
 		
 		self.embedding = nn.Embedding(n_spk, embedding_dim)
 		self.embedding.weight.data.normal_(0, 0.3) # Trying smaller std
@@ -371,8 +372,7 @@ class Tacotron(nn.Module):
 		seg_len = inputs.size(2)
 		inp_expand = inputs.permute(0, 2, 1).contiguous().view(B*seg_len, hidden_dim)
 		emb_expand = self.linear(inp_expand) # (B*T, embedding_dim)
-		emb_permuted = emb_expand.view(B, seg_len, emb_expand.size(1))
-		inp_emb = emb_permuted # (B, T, embedding_dim)
+		inp_emb = emb_expand.view(B, seg_len, emb_expand.size(1)) # (B, T, embedding_dim)
 		
 		# target embedding
 		speaker_id = self.embedding(speaker_id) # (B, embedding_dim)
@@ -385,7 +385,8 @@ class Tacotron(nn.Module):
 		encoder_outputs = self.encoder(inp_emb, input_lengths) # (B, T, embedding_dim)
 		
 		# concatenate speaker embedding
-		decoder_inputs = encoder_outputs+speaker_id # torch.cat((encoder_outputs, speaker_id), 2) # (B, T, embedding_dim)
+		concat_outputs = torch.cat((encoder_outputs, speaker_id), 2) # (B, T, embedding_dim*2)
+		decoder_inputs = self.cat_linear(concat_outputs.view(concat_outputs.size(0)*concat_outputs.size(1), concat_outputs.size(2))).view(concat_outputs.size(0), concat_outputs.size(1), 256) # (B, T, 256)
 		
 		# decode
 		if self.use_mask: memory_lengths = input_lengths
