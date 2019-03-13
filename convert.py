@@ -406,7 +406,7 @@ def encode_for_tacotron(trainer, wav_path, result_path='./data/metadata.csv'):
 	print('[Tester] - Number of wav files to encoded: ', len(wavs))
 
 	enc_outputs = []
-	for wav_path in files:
+	for wav_path in wavs:
 		_, spec = get_spectrograms(wav_path)
 		encodings = encode(src_speaker_spec, trainer, seg_len, s_speaker=feed['s_id'], utt_id=feed['utt_id'], save=False)
 		enc_outputs.append(encodings)
