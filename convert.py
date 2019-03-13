@@ -411,7 +411,7 @@ def encode_for_tacotron(target, trainer, seg_len, multi2idx_path, wav_path, resu
 	for wav_path in tqdm(wavs):
 		y, sr = librosa.load(wav_path)
 		d = librosa.get_duration(y=y, sr=sr)
-		if d > 30: 
+		if d > 25: 
 			continue # --> this filter out 10 too long utts, 3523/3533
 		
 		name = wav_path.split('/')[-1].split('.')[0]
