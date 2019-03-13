@@ -56,7 +56,7 @@ def argument_runner():
 	data_path.add_argument('--index_path', type=str, default='./data/index.json', help='sample training segments from the train dataset, for stage 1 training')
 	data_path.add_argument('--index_source_path', type=str, default='./data/index_source.json', help='sample training source segments from the train dataset, for stage 2 training')
 	data_path.add_argument('--index_target_path', type=str, default='./data/index_target.json', help='sample training target segments from the train dataset, for stage 2 training')
-	data_path.add_argument('--speaker2id_path', type=str, default='./data/speaker2id.json', help='records speaker and speaker id')
+	data_path.add_argument('--speaker2id_path', type=str, default='./data/speaker2id_english.json', help='records speaker and speaker id')
 
 	model_path = parser.add_argument_group('model_path')
 	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech_exp.json', help='hyperparameter path, please refer to the default settings in zerospeech.json')
