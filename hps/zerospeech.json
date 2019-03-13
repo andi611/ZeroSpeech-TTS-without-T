@@ -1,7 +1,7 @@
 {
 	"g_mode": "tacotron",
 	"enc_mode": "multilabel_binary",
-	"load_model_list": "encoder, decoder, generator, target_classifier",
+	"load_model_list": "encoder, decoder, generator, classifier, patch_discriminator, target_classifier",
 	"lr": 0.0001,
 	"alpha_dis": 1,
 	"alpha_enc": 0.01,
