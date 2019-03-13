@@ -352,17 +352,17 @@ class Tacotron(nn.Module):
 		# input embedding
 		B = inputs.size(0)
 		hidden_dim = inputs.size(1)
-		seg_len = inputs.size(2)
-		inp_expand = inputs.permute(0, 2, 1).contiguous().view(B*seg_len, hidden_dim)
+		T = inputs.size(2) # seg_len/8
+		inp_expand = inputs.permute(0, 2, 1).contiguous().view(B*T, hidden_dim)
 		emb_expand = self.linear(inp_expand) # (B*T, embedding_dim)
-		inp_emb = emb_expand.view(B, seg_len, emb_expand.size(1)) # (B, T, embedding_dim)
+		inp_emb = emb_expand.view(B, T, emb_expand.size(1)) # (B, T, embedding_dim)
 		
 		# target embedding
 		speaker_id = self.embedding(speaker_id) # (B, embedding_dim)
-		speaker_id = speaker_id.unsqueeze(1).expand(speaker_id.size(0), seg_len, speaker_id.size(1)) # (B, T, embedding_dim)
+		speaker_id = speaker_id.unsqueeze(1).expand(speaker_id.size(0), T, speaker_id.size(1)) # (B, T, embedding_dim)
 		
 		# permute target
-		targets = targets.permute(0, 2, 1) if targets != None else targets # (B, T, mel_dim)
+		targets = targets.permute(0, 2, 1) if targets is not None else targets # (B, T, mel_dim)
 
 		# encode
 		encoder_outputs = self.encoder(inp_emb, input_lengths) # (B, T, embedding_dim)
@@ -375,10 +375,11 @@ class Tacotron(nn.Module):
 		if self.use_mask: memory_lengths = input_lengths
 		else: memory_lengths = None
 		mel_outputs, alignments = self.decoder(decoder_inputs, targets,
-												memory_lengths=memory_lengths, T_decoder = seg_len) # (B, T/r, mel_dim*r)
+												memory_lengths=memory_lengths, T_decoder = T) # (B, T*8/r, mel_dim*r), (B, T*8/r, T)
 		
 		# Post net processing below
-		mel_outputs = mel_outputs.view(B, -1, self.mel_dim) # (B, T, mel_dim)
+		mel_outputs = mel_outputs.view(B, -1, self.mel_dim) # (B, T*8, mel_dim)
 		linear_outputs = self.postnet(mel_outputs)
-		linear_outputs = self.last_linear(linear_outputs) # (B, T, linear_dim)
+		linear_outputs = self.last_linear(linear_outputs) # (B, T*8, linear_dim)
+
 		return mel_outputs.permute(0, 2, 1).contiguous(), linear_outputs.permute(0, 2, 1).contiguous()
