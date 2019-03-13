@@ -117,8 +117,8 @@ def main():
 	if args.train or args.train_ae or args.train_g or args.train_c or args.train_t:
 		
 		#---create datasets---#
-		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len, load_mel=True if args.train_t else False)
-		sourceset = Dataset(args.dataset_path, args.index_source_path, seg_len=hps.seg_len, load_mel=True if args.train_t else False)
+		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
+		sourceset = Dataset(args.dataset_path, args.index_source_path, seg_len=hps.seg_len)
 		targetset = Dataset(args.dataset_path, args.index_target_path, seg_len=hps.seg_len, load_mel=True if args.train_t else False)
 		
 		#---create data loaders---#
@@ -148,6 +148,7 @@ def main():
 			trainer.train(model_path, args.flag, mode='t_classify') 	# Target speaker classifier training
 
 		if args.train or args.train_t:
+			trainer.switch_loader(target_loader)
 			trainer.train(model_path, args.flag, mode='train_Tacotron')
 
 

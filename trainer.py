@@ -80,7 +80,7 @@ class Trainer(object):
 		elif self.g_mode == 'spectrogram':
 			self.Generator = cc(Patcher(ns=ns, c_in=513, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		elif self.g_mode == 'tacotron':
-			self.Generator = cc(Tacotron(enc_size, hps.n_speakers, mel_dim=hp.n_mels, linear_dim=int(hp.n_fft/2)+1))
+			self.Generator = cc(Tacotron(enc_size, hps.n_target_speakers, mel_dim=hp.n_mels, linear_dim=int(hp.n_fft/2)+1))
 			self.tacotron_input_lengths = torch.tensor([self.hps.seg_len//8 for _ in range(hps.batch_size)])
 		else:
 			raise NotImplementedError('Invalid Generator mode!')
@@ -157,6 +157,10 @@ class Trainer(object):
 		self.target_loader = target_loader
 
 
+	def switch_loader(self, new_loader):
+		self.data_loader = new_loader
+
+
 	def set_eval(self):
 		self.testing_shift_c = Variable(torch.from_numpy(np.array([int(self.hps.n_speakers-self.hps.n_target_speakers)]))).cuda()
 		self.Encoder.eval()
@@ -190,7 +194,7 @@ class Trainer(object):
 			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
 			elif self.g_mode == 'tacotron':
-				_, x_dec = self.Generator(enc, targets=None, speaker_id=c, input_lengths=None)
+				_, x_dec = self.Generator(enc, targets=None, speaker_id=(c - self.testing_shift_c), input_lengths=None)
 			else:
 				raise NotImplementedError('Invalid Generator mode!')
 		else:
@@ -274,7 +278,7 @@ class Trainer(object):
 
 
 	def tacotron_step(self, enc, m, c):
-		m_dec, x_dec = self.Generator(enc, m, c, input_lengths=self.tacotron_input_lengths)
+		m_dec, x_dec = self.Generator(enc, m, c - self.shift_c, input_lengths=self.tacotron_input_lengths)
 		return m_dec, x_dec # mel, linear
 
 
