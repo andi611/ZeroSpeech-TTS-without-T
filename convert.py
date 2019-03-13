@@ -419,7 +419,7 @@ def encode_for_tacotron(trainer, wav_path, result_path='./data/metadata.csv'):
 			for encoding in encodings:
 				if encoding not in multi2idx:
 					multi2idx[str(encoding)] = idx
-					idx + = 1
+					idx += 1
 	print(len(multi2idx))
 	print(multi2idx[0])
 
