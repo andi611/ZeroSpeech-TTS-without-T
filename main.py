@@ -58,6 +58,8 @@ def argument_runner():
 	data_path.add_argument('--index_source_path', type=str, default='./data/index_english_source.json', help='sample training source segments from the train dataset, for stage 2 training')
 	data_path.add_argument('--index_target_path', type=str, default='./data/index_english_target.json', help='sample training target segments from the train dataset, for stage 2 training')
 	data_path.add_argument('--speaker2id_path', type=str, default='./data/speaker2id_english.json', help='records speaker and speaker id')
+	data_path.add_argument('--multi2idx_path', type=str, default='./data/multi2idx_english.json', help='records encoding and idx mapping')
+	data_path.add_argument('--metadata_path', type=str, default='./data/metadata_english.csv', help='path to store encodings for Tacotron')
 
 	model_path = parser.add_argument_group('model_path')
 	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech_exp.json', help='hyperparameter path, please refer to the default settings in zerospeech.json')
@@ -172,7 +174,7 @@ def main():
 		if args.test_classify:
 			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
 		if args.encode:
-			encode_for_tacotron(trainer, hps.seg_len, wav_path=args.target_path)
+			encode_for_tacotron(trainer, hps.seg_len, args.multi2idx_path, wav_path=args.target_path, result_dir=args.metadata_path)
 
 
 if __name__ == '__main__':
