@@ -174,7 +174,7 @@ def main():
 		if args.test_classify:
 			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
 		if args.encode:
-			encode_for_tacotron(trainer, hps.seg_len, args.multi2idx_path, wav_path=args.target_path, result_dir=args.metadata_path)
+			encode_for_tacotron(trainer, hps.seg_len, args.multi2idx_path, wav_path=args.target_path, result_path=args.metadata_path)
 
 
 if __name__ == '__main__':
