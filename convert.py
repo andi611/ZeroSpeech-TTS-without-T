@@ -401,15 +401,19 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 	print('Classification Acc: {:.3f}'.format(np.sum(acc)/len(acc)))
 
 
-def encode_for_tacotron(trainer, wav_path, result_path='./data/metadata.csv'):
+def encode_for_tacotron(trainer, seg_len, wav_path, result_path='./data/metadata.csv'):
 	wavs = sorted(glob.glob(os.path.join(wav_path, '*.wav')))
 	print('[Tester] - Number of wav files to encoded: ', len(wavs))
 
 	enc_outputs = []
 	for wav_path in wavs:
+		name = wav_path.split('/')[-1].split('.')[0]
+		s_id = name.split('_')[0]
+		u_id = name.split('_')[1]
 		_, spec = get_spectrograms(wav_path)
-		encodings = encode(src_speaker_spec, trainer, seg_len, s_speaker=feed['s_id'], utt_id=feed['utt_id'], save=False)
+		encodings = encode(spec, trainer, seg_len, s_speaker=s_id, utt_id=u_id, save=False)
 		enc_outputs.append(encodings)
+		break
 
 	# build encodings to index mapping
 	idx = 0
