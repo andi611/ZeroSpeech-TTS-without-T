@@ -418,13 +418,12 @@ def encode_for_tacotron(trainer, seg_len, wav_path, result_path='./data/metadata
 	# build encodings to index mapping
 	idx = 0
 	multi2idx = {}
-	for output in enc_outputs:
-		for encodings in output:
-			for encoding in encodings:
-				if encoding not in multi2idx:
-					multi2idx[str(encoding)] = idx
-					print(str(encoding))
-					idx += 1
+	for encodings in enc_outputs:
+		for encoding in encodings:
+			if encoding not in multi2idx:
+				multi2idx[str(encoding)] = idx
+				print(str(encoding))
+				idx += 1
 	print(len(multi2idx))
 	print(multi2idx[0])
 
