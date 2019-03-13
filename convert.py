@@ -403,7 +403,7 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 
 def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path):
 	wavs = sorted(glob.glob(os.path.join(wav_path, '*.wav')))
-	print('[Tester] - Number of wav files to encoded: ', len(wavs))
+	print('[Converter] - Number of wav files to encoded: ', len(wavs))
 
 	names = []
 	enc_outputs = []
@@ -420,16 +420,18 @@ def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path)
 	idx = 0
 	encoding_symbols = '1234ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 	multi2idx = {}
-	for encodings in enc_outputs:
+	print('[Converter] - Building encoding to symbol mapping...')
+	for encodings in tqdm(enc_outputs):
 		for encoding in encodings:
 			if str(encoding) not in multi2idx:
 				multi2idx[str(encoding)] = encoding_symbols[idx]
 				idx += 1
 
-	print('[Tester] - Number of unique discret units: ', len(multi2idx))
+	print('[Converter] - Number of unique discret units: ', len(multi2idx))
 	with open(multi2idx_path, 'w') as file:
 		file.write(json.dumps(multi2idx))
-
+	
+	print('[Converter] - Writing to meta file...')
 	with open(result_path, 'w') as file:
 		for i, encodings in enumerate(enc_outputs):
 			file.write(str(names[i][0]) + '_' + str(names[i][1] + '|'))
