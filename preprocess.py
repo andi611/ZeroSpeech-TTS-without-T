@@ -133,6 +133,12 @@ class Sampler(object):
 		self.f_h5 = h5py.File(h5_path, 'r')
 		self.seg_len = seg_len
 		self.speaker2id_path = speaker2id_path
+		if 'english' in h5_path:
+			self.target_speakers = ['V001', 'V002']
+		elif 'surprise' in h5_path:
+			self.target_speakers = ['V001']
+		else:
+			raise NotImplementedError('Invalid dataset.hdf5 name!')
 
 		if make_object == 'all': 
 			self.speaker_used = sorted(list(self.f_h5[dset].keys()))
@@ -140,11 +146,11 @@ class Sampler(object):
 			print('[Sampler] - Generating stage 1 training segments...')
 		elif make_object == 'source':
 			self.get_speaker2id()
-			self.speaker_used = [s for s in sorted(list(self.f_h5[dset].keys())) if s not in ['V001', 'V002']]
+			self.speaker_used = [s for s in sorted(list(self.f_h5[dset].keys())) if s not in self.target_speakers]
 			print('[Sampler] - Generating stage 2 training source segments...')
 		elif make_object == 'target':
 			self.get_speaker2id()
-			self.speaker_used = ['V001', 'V002']
+			self.speaker_used = self.target_speakers
 			print('[Sampler] - Generating stage 2 training target segments...')
 		else:
 			raise NotImplementedError('Invalid make object!')

@@ -40,7 +40,7 @@ def argument_runner():
 
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
-	static_setting.add_argument('--remake', type=bool, default=bool(1), help='whether to remake dataset.hdf5')
+	static_setting.add_argument('--remake', type=bool, default=bool(0), help='whether to remake dataset.hdf5')
 	static_setting.add_argument('--g_mode', choices=['naive', 'targeted', 'enhanced', 'spectrogram', 'tacotron', 'set_from_hps'], default='set_from_hps', help='different stage two generator settings')
 	static_setting.add_argument('--enc_mode', choices=['continues', 'one_hot', 'binary', 'multilabel_binary', 'gumbel_t', 'set_from_hps'], default='set_from_hps', help='different output method for the encoder to generate encodings')
 	static_setting.add_argument('--enc_only', type=bool, default=bool(0), help='whether to predict only with stage 1 audoencoder')
@@ -53,10 +53,10 @@ def argument_runner():
 	data_path.add_argument('--target_path', type=str, default='./data/english/train/voice/', help='the zerospeech train voice dataset')
 	data_path.add_argument('--test_path', type=str, default='./data/english/test/', help='the zerospeech test dataset')
 	data_path.add_argument('--synthesis_list', type=str, default='./data/english/synthesis.txt', help='the zerospeech testing list')
-	data_path.add_argument('--dataset_path', type=str, default='./data/dataset.hdf5', help='the processed train dataset (unit + voice)')
-	data_path.add_argument('--index_path', type=str, default='./data/index.json', help='sample training segments from the train dataset, for stage 1 training')
-	data_path.add_argument('--index_source_path', type=str, default='./data/index_source.json', help='sample training source segments from the train dataset, for stage 2 training')
-	data_path.add_argument('--index_target_path', type=str, default='./data/index_target.json', help='sample training target segments from the train dataset, for stage 2 training')
+	data_path.add_argument('--dataset_path', type=str, default='./data/dataset_english.hdf5', help='the processed train dataset (unit + voice)')
+	data_path.add_argument('--index_path', type=str, default='./data/index_english.json', help='sample training segments from the train dataset, for stage 1 training')
+	data_path.add_argument('--index_source_path', type=str, default='./data/index_english_source.json', help='sample training source segments from the train dataset, for stage 2 training')
+	data_path.add_argument('--index_target_path', type=str, default='./data/index_english_target.json', help='sample training target segments from the train dataset, for stage 2 training')
 	data_path.add_argument('--speaker2id_path', type=str, default='./data/speaker2id_english.json', help='records speaker and speaker id')
 
 	model_path = parser.add_argument_group('model_path')
