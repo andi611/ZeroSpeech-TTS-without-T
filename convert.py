@@ -338,12 +338,12 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 	print('[Tester] - Number of files to encoded: ', len(feeds))
 	dir_path = os.path.join(result_dir, f'{flag}/')
 	os.makedirs(dir_path, exist_ok=True)
-	
+
 	with h5py.File(data_path, 'r') as f_h5:
 		for feed in tqdm(feeds):
 
 			src_speaker_spec = f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()]
-			encode(src_speaker_spec, trainer, seg_len, s_speaker=feed['s_id'], utt_id=feed['utt_id'], result_dir=dir_path):
+			encode(src_speaker_spec, trainer, seg_len, s_speaker=feed['s_id'], utt_id=feed['utt_id'], result_dir=dir_path)
 			
 
 
