@@ -407,7 +407,11 @@ def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path)
 
 	names = []
 	enc_outputs = []
+
 	for wav_path in tqdm(wavs):
+		y, sr = librosa.load(wav_path)
+		d = librosa.get_duration(y=y, sr=sr)
+		if d > 30: continue
 		name = wav_path.split('/')[-1].split('.')[0]
 		s_id = name.split('_')[0]
 		u_id = name.split('_')[1]
