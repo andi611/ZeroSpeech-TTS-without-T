@@ -46,6 +46,7 @@ def argument_runner():
 	static_setting.add_argument('--enc_only', type=bool, default=bool(0), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V002', help='for the --test_single mode, set voice convergence target speaker')
+	static_setting.add_argument('--encode_t', type=str, default=None, help='target to be encoded by --encode, must be specified (V001, or V002).')
 	
 	data_path = parser.add_argument_group('data_path')
 	data_path.add_argument('--dataset', choices=['english', 'surprise'], default='english', help='which dataset to use')
@@ -174,7 +175,9 @@ def main():
 		if args.test_classify:
 			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
 		if args.encode:
-			encode_for_tacotron(trainer, hps.seg_len, args.multi2idx_path, wav_path=args.target_path, result_path=args.metadata_path)
+			if args.encode_t == None:
+				raise RuntimeError('Please specified encode target! (V001 or V002)')
+			encode_for_tacotron(args.encode_t, trainer, hps.seg_len, args.multi2idx_path, wav_path=args.target_path, result_path=args.metadata_path)
 
 
 if __name__ == '__main__':

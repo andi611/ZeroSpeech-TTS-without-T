@@ -401,7 +401,7 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 	print('Classification Acc: {:.3f}'.format(np.sum(acc)/len(acc)))
 
 
-def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path):
+def encode_for_tacotron(target, trainer, seg_len, multi2idx_path, wav_path, result_path):
 	wavs = sorted(glob.glob(os.path.join(wav_path, '*.wav')))
 	print('[Converter] - Number of wav files to encoded: ', len(wavs))
 
@@ -411,14 +411,19 @@ def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path)
 	for wav_path in tqdm(wavs):
 		y, sr = librosa.load(wav_path)
 		d = librosa.get_duration(y=y, sr=sr)
-		if d > 30: continue # --> this filter out 10 too long utts, 3523/3533
+		if d > 30: 
+			continue # --> this filter out 10 too long utts, 3523/3533
+		
 		name = wav_path.split('/')[-1].split('.')[0]
 		s_id = name.split('_')[0]
 		u_id = name.split('_')[1]
-		names.append((s_id, u_id))
+		if s_id != target:
+			continue
+
 		_, spec = get_spectrograms(wav_path)
 		encodings = encode(spec, trainer, seg_len, s_speaker=s_id, utt_id=u_id, save=False)
 		enc_outputs.append(encodings)
+		names.append((s_id, u_id))
 
 	# build encodings to index mapping
 	idx = 0
@@ -432,9 +437,11 @@ def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path)
 				idx += 1
 
 	print('[Converter] - Number of unique discret units: ', len(multi2idx))
+	multi2idx_path = multi2idx_path.split('.')[-2] + '_' + str(target) + '_' + multi2idx_path.split('.')[-1]
 	with open(multi2idx_path, 'w') as file:
 		file.write(json.dumps(multi2idx))
-	
+		
+	result_path = result_path.split('.')[-2] + '_' + str(target) + '_' + result_path.split('.')[-1]
 	print('[Converter] - Writing to meta file...')
 	with open(result_path, 'w') as file:
 		for i, encodings in enumerate(enc_outputs):
