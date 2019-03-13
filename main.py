@@ -62,7 +62,7 @@ def argument_runner():
 	data_path.add_argument('--metadata_path', type=str, default='./data/metadata_english.csv', help='path to store encodings for Tacotron')
 
 	model_path = parser.add_argument_group('model_path')
-	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech_exp.json', help='hyperparameter path, please refer to the default settings in zerospeech.json')
+	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech_english.json', help='hyperparameter path, please refer to the default settings in zerospeech.json')
 	model_path.add_argument('--ckpt_dir', type=str, default='./ckpt_english', help='checkpoint directory for training storage')
 	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
 	model_path.add_argument('--sub_result_dir', type=str, default='./english/', help='sub result directory for generating zerospeech synthesis results')
