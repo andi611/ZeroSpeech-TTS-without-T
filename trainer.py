@@ -574,9 +574,15 @@ class Trainer(object):
 			
 			assert self.g_mode == 'tacotron'
 			criterion = TacotronLoss()
+			self.Encoder.eval()
 
 			for iteration in range(hps.tacotron_iters):
 			#======train tacotron======#
+
+				cur_lr = learning_rate_decay(init_lr=0.002, global_step=iteration)
+				for param_group in gen_opt.param_groups:
+					param_group['lr'] = cur_lr
+
 				data = next(self.data_loader)
 				c, x, m = self.permute_data(data, load_mel=True)
 				
@@ -596,6 +602,7 @@ class Trainer(object):
 				# tb info
 				info = {
 					f'{flag}/tacotron_loss_rec': loss_rec.item(),
+					f'{flag}/tacotron_lr': cur_lr.item(),
 				}
 				slot_value = (iteration + 1, hps.tacotron_iters) + tuple([value for value in info.values()])
 				log = 'train_Tacotron:[%06d/%06d], loss_rec=%.3f'

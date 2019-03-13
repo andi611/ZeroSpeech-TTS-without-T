@@ -11,6 +11,7 @@
 # IMPORTATION #
 ###############
 import torch
+import numpy as np
 from torch import nn
 from torch.autograd import Variable
 from tacotron.attention import BahdanauAttention, LocationSensitiveAttention
@@ -383,3 +384,13 @@ class Tacotron(nn.Module):
 		linear_outputs = self.last_linear(linear_outputs) # (B, T*8, linear_dim)
 
 		return mel_outputs.permute(0, 2, 1).contiguous(), linear_outputs.permute(0, 2, 1).contiguous()
+
+
+#######################
+# LEARNING RATE DECAY #
+#######################
+def learning_rate_decay(init_lr, global_step):
+	warmup_steps = 6000.0
+	step = global_step + 1.
+	lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5, step**-0.5)
+	return lr
