@@ -87,6 +87,7 @@ def argument_runner():
 	print('[Runner] - Generation mode: ', 'autoencoder only' if args.enc_only else 'with generator')
 	print('[Runner] - Generator mode: ', args.g_mode)
 	print('[Runner] - Encoder mode: ', args.enc_mode)
+	print('[Runner] - Encoding dim: ', hps.enc_size)
 
 	return args, hps
 
