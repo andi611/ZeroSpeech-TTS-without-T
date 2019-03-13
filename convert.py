@@ -401,15 +401,17 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 	print('Classification Acc: {:.3f}'.format(np.sum(acc)/len(acc)))
 
 
-def encode_for_tacotron(trainer, seg_len, wav_path, result_path='./data/metadata.csv'):
+def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path):
 	wavs = sorted(glob.glob(os.path.join(wav_path, '*.wav')))
 	print('[Tester] - Number of wav files to encoded: ', len(wavs))
 
+	names = []
 	enc_outputs = []
 	for wav_path in wavs:
 		name = wav_path.split('/')[-1].split('.')[0]
 		s_id = name.split('_')[0]
 		u_id = name.split('_')[1]
+		names.append((s_id, u_id))
 		_, spec = get_spectrograms(wav_path)
 		encodings = encode(spec, trainer, seg_len, s_speaker=s_id, utt_id=u_id, save=False)
 		enc_outputs.append(encodings)
@@ -417,14 +419,25 @@ def encode_for_tacotron(trainer, seg_len, wav_path, result_path='./data/metadata
 
 	# build encodings to index mapping
 	idx = 0
+	encoding_symbols = '1234ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 	multi2idx = {}
 	for encodings in enc_outputs:
 		for encoding in encodings:
 			if str(encoding) not in multi2idx:
-				multi2idx[str(encoding)] = idx
-				print(str(encoding))
+				multi2idx[str(encoding)] = encoding_symbols[idx]
 				idx += 1
-	print(len(multi2idx))
-	print(multi2idx[0])
+		break
+
+	print('[Tester] - Number of unique discret units: ', len(multi2idx))
+	with open(multi2idx_path, 'w') as file:
+		file.write(json.dumps(multi2idx))
+
+	with open(result_path, 'w') as file:
+		for i, encodings in enumerate(enc_outputs):
+			file.write(str(names[i][0]) + '_' + str(names[i][1] + '|'))
+			for encoding in encodings:
+				file.write(multi2idx[str(encoding)])
+			file.write('\n')
+
 
 	
