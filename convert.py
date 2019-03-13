@@ -175,6 +175,42 @@ def convert(trainer,
 		return wav_data, encodings
 
 
+def encode(src_speaker_spec, trainer, seg_len, s_speaker, utt_id, result_dir, save=True):
+	# pad spec to minimum len
+	PADDED = False
+	if len(src_speaker_spec) < MIN_LEN:
+		padding = np.zeros((MIN_LEN - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
+		src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
+		PADDED = True
+		
+	if len(src_speaker_spec) <= seg_len:
+		encodings = encode_x(src_speaker_spec, trainer)
+		if PADDED: 
+			encodings = encodings[:MIN_LEN//8] # truncate the encoding of zero paddings
+
+	else:
+		encodings = []
+		for idx in range(0, len(src_speaker_spec), seg_len):
+			if idx + (seg_len*2) > len(src_speaker_spec):
+				spec_frag = src_speaker_spec[idx:-1]
+			else:
+				spec_frag = src_speaker_spec[idx:idx+seg_len]
+
+			if len(spec_frag) >= seg_len:
+				enc = encode_x(spec_frag, trainer)
+				encodings.append(enc)
+			elif idx == 0:
+				raise RuntimeError('Please check if input is too short!')
+
+		encodings = np.concatenate(encodings, axis=0)
+
+	if save:
+		enc_path = os.path.join(result_dir, f"{s_speaker}_{utt_id}.txt")
+		write_encoding(enc_path, encodings)
+	else:
+		return encodings
+
+
 def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path, result_dir, enc_only, flag='test'):
 	
 	with open(speaker2id_path, 'r') as f_json:
@@ -302,42 +338,13 @@ def test_encode(trainer, seg_len, test_path, data_path, result_dir, flag='test')
 	print('[Tester] - Number of files to encoded: ', len(feeds))
 	dir_path = os.path.join(result_dir, f'{flag}/')
 	os.makedirs(dir_path, exist_ok=True)
-
+	
 	with h5py.File(data_path, 'r') as f_h5:
 		for feed in tqdm(feeds):
 
 			src_speaker_spec = f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()]
+			encode(src_speaker_spec, trainer, seg_len, s_speaker=feed['s_id'], utt_id=feed['utt_id'], result_dir=dir_path):
 			
-			# pad spec to minimum len
-			PADDED = False
-			if len(src_speaker_spec) < MIN_LEN:
-				padding = np.zeros((MIN_LEN - src_speaker_spec.shape[0], src_speaker_spec.shape[1]))
-				src_speaker_spec = np.concatenate((src_speaker_spec, padding), axis=0)
-				PADDED = True
-				
-			if len(src_speaker_spec) <= seg_len:
-				encodings = encode_x(src_speaker_spec, trainer)
-				if PADDED: 
-					encodings = encodings[:MIN_LEN//8] # truncate the encoding of zero paddings
-
-			else:
-				encodings = []
-				for idx in range(0, len(src_speaker_spec), seg_len):
-					if idx + (seg_len*2) > len(src_speaker_spec):
-						spec_frag = src_speaker_spec[idx:-1]
-					else:
-						spec_frag = src_speaker_spec[idx:idx+seg_len]
-
-					if len(spec_frag) >= seg_len:
-						enc = encode_x(spec_frag, trainer)
-						encodings.append(enc)
-					elif idx == 0:
-						raise RuntimeError('Please check if input is too short!')
-
-				encodings = np.concatenate(encodings, axis=0)
-
-			enc_path = os.path.join(dir_path, f"{feed['s_id']}_{feed['utt_id']}.txt")
-			write_encoding(enc_path, encodings)
 
 
 def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
@@ -389,4 +396,13 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 			acc.append(0)
 			#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
 	print('Classification Acc: {:.3f}'.format(np.sum(acc)/len(acc)))
+
+
+def encode_for_tacotron(trainer, wav_path):
+	wavs = sorted(glob.glob(os.path.join(wav_path, '*.wav')))
+	print('[Tester] - Number of wav files to encoded: ', len(wavs))
+
+	for wav_path in files:
+		_, spec = get_spectrograms(wav_path)
+
 	
