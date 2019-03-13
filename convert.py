@@ -175,7 +175,10 @@ def convert(trainer,
 		return wav_data, encodings
 
 
-def encode(src_speaker_spec, trainer, seg_len, s_speaker, utt_id, result_dir, save=True):
+def encode(src_speaker_spec, trainer, seg_len, s_speaker, utt_id, result_dir=None, save=True):
+	if save:
+		assert result_dir != None
+
 	# pad spec to minimum len
 	PADDED = False
 	if len(src_speaker_spec) < MIN_LEN:
@@ -398,11 +401,26 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 	print('Classification Acc: {:.3f}'.format(np.sum(acc)/len(acc)))
 
 
-def encode_for_tacotron(trainer, wav_path):
+def encode_for_tacotron(trainer, wav_path, result_path='./data/metadata.csv'):
 	wavs = sorted(glob.glob(os.path.join(wav_path, '*.wav')))
 	print('[Tester] - Number of wav files to encoded: ', len(wavs))
 
+	enc_outputs = []
 	for wav_path in files:
 		_, spec = get_spectrograms(wav_path)
+		encodings = encode(src_speaker_spec, trainer, seg_len, s_speaker=feed['s_id'], utt_id=feed['utt_id'], save=False)
+		enc_outputs.append(encodings)
+
+	# build encodings to index mapping
+	idx = 0
+	multi2idx = {}
+	for output in enc_outputs:
+		for encodings in output:
+			for encoding in encodings:
+				if encoding not in multi2idx:
+					multi2idx[str(encoding)] = idx
+					idx + = 1
+	print(len(multi2idx))
+	print(multi2idx[0])
 
 	
