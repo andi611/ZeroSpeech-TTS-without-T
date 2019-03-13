@@ -74,7 +74,7 @@ def argument_runner():
 	#---reparse if switching dataset---#
 	if args.dataset == 'surprise':
 		for action in parser._actions:
-			if ('path' in action.dest or 'synthesis_list' in action.dest or 'sub_result_dir' in action.dest):
+			if ('path' in action.dest or 'synthesis_list' in action.dest or 'sub_result_dir' in action.dest or 'ckpt_dir' in action.dest):
 				if 'english' in action.default:
 					action.default = action.default.replace('english', 'surprise')
 		args = parser.parse_args()
