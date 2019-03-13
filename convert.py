@@ -437,11 +437,11 @@ def encode_for_tacotron(target, trainer, seg_len, multi2idx_path, wav_path, resu
 				idx += 1
 
 	print('[Converter] - Number of unique discret units: ', len(multi2idx))
-	multi2idx_path = multi2idx_path.split('.')[-2] + '_' + str(target) + '_' + multi2idx_path.split('.')[-1]
+	multi2idx_path = multi2idx_path.split('.')[-2] + '_' + str(target) + '.' + multi2idx_path.split('.')[-1]
 	with open(multi2idx_path, 'w') as file:
 		file.write(json.dumps(multi2idx))
 		
-	result_path = result_path.split('.')[-2] + '_' + str(target) + '_' + result_path.split('.')[-1]
+	result_path = result_path.split('.')[-2] + '_' + str(target) + '.' + result_path.split('.')[-1]
 	print('[Converter] - Writing to meta file...')
 	with open(result_path, 'w') as file:
 		for i, encodings in enumerate(enc_outputs):
