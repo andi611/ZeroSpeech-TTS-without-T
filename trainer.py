@@ -24,7 +24,7 @@ from model import TargetClassifier
 from model import SpeakerClassifier
 from model import PatchDiscriminator
 from model import Enhanced_Generator, Patcher
-from tacotron.tacotron import Tacotron
+from tacotron.tacotron import Tacotron, learning_rate_decay
 from tacotron.loss import TacotronLoss
 from utils import Logger, cc, to_var
 from utils import grad_clip, reset_grad
@@ -584,7 +584,7 @@ class Trainer(object):
 			#======train tacotron======#
 
 				cur_lr = learning_rate_decay(init_lr=0.002, global_step=iteration)
-				for param_group in gen_opt.param_groups:
+				for param_group in self.gen_opt.param_groups:
 					param_group['lr'] = cur_lr
 
 				data = next(self.data_loader)
@@ -594,7 +594,7 @@ class Trainer(object):
 				enc_act, enc = self.encode_step(x)
 
 				# tacotron synthesis
-				m_dec, x_dec = self.tacotron_step(enc_act, m, c)
+				m_dec, x_dec = self.tacotron_step(enc_act.data, m, c)
 				
 				# reconstruction loss 
 				loss_rec = criterion([m_dec, x_dec], [m, x])
@@ -606,10 +606,10 @@ class Trainer(object):
 				# tb info
 				info = {
 					f'{flag}/tacotron_loss_rec': loss_rec.item(),
-					f'{flag}/tacotron_lr': cur_lr.item(),
+					f'{flag}/tacotron_lr': cur_lr,
 				}
 				slot_value = (iteration + 1, hps.tacotron_iters) + tuple([value for value in info.values()])
-				log = 'train_Tacotron:[%06d/%06d], loss_rec=%.3f'
+				log = 'train_Tacotron:[%06d/%06d], loss_rec=%.3f, lr=%.2e'
 				print(log % slot_value, end='\r')
 				
 				if iteration % 100 == 0:
