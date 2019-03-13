@@ -407,7 +407,7 @@ def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path)
 
 	names = []
 	enc_outputs = []
-	for wav_path in wavs:
+	for wav_path in tqdm(wavs):
 		name = wav_path.split('/')[-1].split('.')[0]
 		s_id = name.split('_')[0]
 		u_id = name.split('_')[1]
@@ -415,7 +415,6 @@ def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path)
 		_, spec = get_spectrograms(wav_path)
 		encodings = encode(spec, trainer, seg_len, s_speaker=s_id, utt_id=u_id, save=False)
 		enc_outputs.append(encodings)
-		break
 
 	# build encodings to index mapping
 	idx = 0
@@ -426,7 +425,6 @@ def encode_for_tacotron(trainer, seg_len, multi2idx_path, wav_path, result_path)
 			if str(encoding) not in multi2idx:
 				multi2idx[str(encoding)] = encoding_symbols[idx]
 				idx += 1
-		break
 
 	print('[Tester] - Number of unique discret units: ', len(multi2idx))
 	with open(multi2idx_path, 'w') as file:
