@@ -112,7 +112,11 @@ def compare_asr(s_wav, t_wav):
 	return err_result
 
 
-def write_encoding(path, encodings):
+def parse_encodings(encodings):
+	return [[str(int(e)) + (' ' if i < len(enc)-1 else '') for i, e in enumerate(enc)] for enc in encodings]
+
+
+def write_encodings(path, encodings):
 	with open(path, 'w') as file:
 		for enc in encodings:
 			for i, e in enumerate(enc):
@@ -169,7 +173,7 @@ def convert(trainer,
 			sf.write(wav_path, wav_data, hp.sr, 'PCM_16')
 		if 'enc' in save: 
 			enc_path = os.path.join(result_dir, f'{src_speaker}_{utt_id}.txt')
-			write_encoding(enc_path, encodings)
+			write_encodings(enc_path, encodings)
 		return wav_path, len(converted_results)
 	else:
 		return wav_data, encodings
@@ -209,7 +213,7 @@ def encode(src_speaker_spec, trainer, seg_len, s_speaker, utt_id, result_dir=Non
 
 	if save:
 		enc_path = os.path.join(result_dir, f"{s_speaker}_{utt_id}.txt")
-		write_encoding(enc_path, encodings)
+		write_encodings(enc_path, encodings)
 	else:
 		return encodings
 
@@ -320,7 +324,7 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 								  save=[])
 
 	sf.write(os.path.join(result_dir, 'result.wav'), wav_data, hp.sr, 'PCM_16')
-	write_encoding(os.path.join(result_dir, 'result.txt'), encodings)
+	write_encodings(os.path.join(result_dir, 'result.txt'), encodings)
 
 	err_result = compare_asr(filename, os.path.join(result_dir, 'result.wav'))
 
@@ -422,10 +426,11 @@ def encode_for_tacotron(target, trainer, seg_len, multi2idx_path, wav_path, resu
 
 		_, spec = get_spectrograms(wav_path)
 		encodings = encode(spec, trainer, seg_len, s_speaker=s_id, utt_id=u_id, save=False)
+		encodings = parse_encodings(encodings)
 		enc_outputs.append(encodings)
 		names.append((s_id, u_id))
 
-	# build encodings to index mapping
+	# build encodings to character mapping
 	idx = 0
 	encoding_symbols = '1234ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 	multi2idx = {}
