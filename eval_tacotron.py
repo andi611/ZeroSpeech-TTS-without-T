@@ -206,8 +206,9 @@ def main():
 		# wav_path = './data/english/train/voice/V002_1665800749.wav' 
 		_, spec = get_spectrograms(wav_path)
 		encodings = encode(spec, trainer, hps.seg_len, save=False)
-		encodings = parse_encodings(encodings)
-		line = ''.join([multi2idx[encoding] for encoding in encodings])
+		write_encodings(path='./result/result.wav', encodings=encodings)
+		parsed_encodings = parse_encodings(encodings)
+		line = ''.join([multi2idx[encoding] for encoding in parsed_encodings])
 		print(line)
 		synthesis_speech(model, text=line, path='./result/result.wav')
 
