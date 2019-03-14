@@ -1,0 +1,18 @@
+author:
+  Ting-Wei Liu, Po-Chun Hsu
+affiliation:
+  College of Electrical Engineering and Computer Science, National Taiwan University
+abx distance:
+  levenshtein
+open source:
+  false
+system description:
+  a brief description of your system, eventually pointing to a paper
+auxiliary1 description:
+  None is used
+auxiliary2 description:
+  None is used
+using parallel train:
+  false
+using external data:
+  false
