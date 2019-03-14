@@ -13,7 +13,6 @@
 import os
 import sys
 import json
-import nltk
 import argparse
 import librosa
 import librosa.display
@@ -26,7 +25,7 @@ from torch.autograd import Variable
 from model.tacotron import audio
 from model.tacotron.text import text_to_sequence, symbols
 from model.tacotron.tacotron import Tacotron
-from conver import get_trainer, encode, parse_encodings
+from convert import get_trainer, encode, parse_encodings
 from preprocess import get_spectrograms
 from hps.hps import hp, Hps
 
