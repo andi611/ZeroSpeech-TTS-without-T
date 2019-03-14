@@ -58,7 +58,7 @@ def get_test_args():
 	path_parser.add_argument('--testing_dir', type=str, default='./data/english/test', help='path to the input test audios')
 	path_parser.add_argument('--synthesis_list', type=str, default='./data/english/synthesis.txt', help='path to the input test transcripts')
 	path_parser.add_argument('--speaker2id_path', type=str, default='./data/speaker2id_english.json', help='records speaker and speaker id')
-	path_parser.add_argument('--multi2idx_path', type=str, default='./data/multi2idx_english_target.json', help='records encoding and idx mapping')
+	path_parser.add_argument('--multi2idx_path', type=str, default='./data/multi2idx.json', help='records encoding and idx mapping')
 	path_parser.add_argument('--hps_path', type=str, default='./hps/zerospeech_english.json', help='hyperparameter path, please refer to the default settings in zerospeech.json')
 	args = parser.parse_args()
 
@@ -168,10 +168,7 @@ def main():
 	with open(args.speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
 
-	args.multi2idx_path = args.multi2idx_path.replace('target', args.eval_t)
 	print('[Tacotron] - Loading mapping files: ', args.multi2idx_path)
-	valid_arguments(valid_target=args.dataset, arg=args.multi2idx_path)
-	valid_arguments(valid_target=args.eval_t, arg=args.multi2idx_path)
 	with open(args.multi2idx_path, 'r') as f_json:
 		multi2idx = json.load(f_json)
 

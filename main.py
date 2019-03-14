@@ -143,18 +143,22 @@ def main():
 			trainer.train(model_path, args.flag, mode='pretrain_AE') 	# Stage 1 pre-train: encoder-decoder reconstruction
 			# trainer.train(model_path, args.flag, mode='pretrain_C')   # Deprecated: Stage 1 pre-train: classifier-1
 			# trainer.train(model_path, args.flag, mode='train') 		# Deprecated: Stage 1 training
-		
+			trainer.reset_keep()
+
 		if args.train or args.train_g:	
 			trainer.add_duo_loader(source_loader, target_loader)
 			trainer.train(model_path, args.flag, mode='patchGAN')		# Stage 2 training
+			trainer.reset_keep()
 			
 		if args.train or args.train_c:	
 			trainer.add_duo_loader(source_loader, target_loader)
 			trainer.train(model_path, args.flag, mode='t_classify') 	# Target speaker classifier training
+			trainer.reset_keep()
 
 		if args.train or args.train_t:
 			trainer.switch_loader(target_loader)
 			trainer.train(model_path, args.flag, mode='train_Tacotron')
+			trainer.reset_keep()
 
 
 	if args.test or args.cross_test or args.test_single or args.test_encode or args.test_classify or args.encode:

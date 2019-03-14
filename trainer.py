@@ -100,6 +100,8 @@ class Trainer(object):
 		#---target classifier opts---#
 		self.tclf_opt = optim.Adam(self.TargetClassifier.parameters(), lr=self.hps.lr, betas=betas)
 
+	def reset_keep(self):
+		self.model_kept = []
 
 	def save_model(self, model_path, name, iteration, model_all=True):
 		if model_all:
