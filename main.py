@@ -59,7 +59,7 @@ def argument_runner():
 	data_path.add_argument('--index_source_path', type=str, default='./data/index_english_source.json', help='sample training source segments from the train dataset, for stage 2 training')
 	data_path.add_argument('--index_target_path', type=str, default='./data/index_english_target.json', help='sample training target segments from the train dataset, for stage 2 training')
 	data_path.add_argument('--speaker2id_path', type=str, default='./data/speaker2id_english.json', help='records speaker and speaker id')
-	data_path.add_argument('--multi2idx_path', type=str, default='./data/multi2idx_english_target.json', help='records encoding and idx mapping')
+	data_path.add_argument('--multi2idx_path', type=str, default='./data/multi2idx.json', help='records encoding and idx mapping')
 	data_path.add_argument('--metadata_path', type=str, default='./data/metadata_english_target.csv', help='path to store encodings for Tacotron')
 
 	model_path = parser.add_argument_group('model_path')

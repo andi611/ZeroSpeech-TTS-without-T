@@ -445,7 +445,6 @@ def encode_for_tacotron(target, trainer, seg_len, multi2idx_path, wav_path, resu
 				idx += 1
 
 	print('[Converter] - Number of unique discret units: ', len(multi2idx))
-	multi2idx_path = multi2idx_path.replace('target', target)
 	with open(multi2idx_path, 'w') as file:
 		file.write(json.dumps(multi2idx))
 	
