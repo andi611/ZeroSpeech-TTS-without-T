@@ -14,20 +14,24 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 2. Install the latest version of **[Pytorch](https://pytorch.org/get-started/locally/)** according to your platform. For better
 	performance, install with GPU support (CUDA) if viable. This code works with Pytorch 0.4 and later.
 
-3. Install [requirements](requirements.txt):
-	```
-	pip3 install -r requirements.txt
-	```
-	*Warning: you need to install torch depending on your platform. Here list the Pytorch version used when built this project was built.*
-
 ### Prepare data
 
 1. **Download the ZeroSpeech dataset.**
+	The English dataset:
 	```
 	wget https://download.zerospeech.com/2019/english.tgz
 	tar xvfz english.tgz -C data
 	rm -f english.tgz
 	```
+	The Surprise dataset:
+	```
+	wget https://download.zerospeech.com/2019/surprise.zip
+	unzip surprise.zip -d data
+	>> enter the password when prompted for:  9kneopShevtat]
+	rm -f surprise.zip
+	```
+	
+	Dataset Backup Link: [Download](https://drive.google.com/drive/folders/19MwNuGO8WbhR4ujmjf9B5k8bHocctSS_?usp=sharing)
 
 2. **After unpacking the dataset into `~/ZeroSpeech-TTS-without-T/data`, data tree should look like this:**
 	```
@@ -38,46 +42,58 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 				 	|- unit
 				 	|- voice
 				 |- test
+			|- surprise
+				 |- train
+				 	|- unit
+				 	|- voice
+				 |- test
 	```
 
-3. **Preprocess the dataset and make model-ready meta files:**
+3. **Preprocess the dataset and sample model-ready index files:**
 	```
 	python3 main.py --preprocess
 	```
 
 ### Training
 
-1. **Train a model:**
+1. **Train stage 1 ASR-TTS model:**
 	```
-	python3 main.py --train
+	python3 main.py --train_ae
 	```
-
-	Restore training from a previous checkpoint:
-	```
-	python3 train.py --train --load_model
-	```
-
 	Tunable hyperparameters can be found in [hps/zerospeech.json](hps/zerospeech.json). 
-	
-	You can adjust these parameters and setting by editing the file, the default hyperparameters are recommended for this task.
+	You can adjust these parameters and setting by editing the file, the default hyperparameters are recommended for this project.
 
-2. **Monitor with Tensorboard** (OPTIONAL)
+2. **Train stage 2 TTS patcher:**
 	```
-	tensorboard --logdir 'path to log_dir'
+	python3 main.py --train_g --load_model --load_train_model_name=model.pth-ae-400000
 	```
 
-	The trainer dumps audio and alignments every 2000 steps by default. You can find these in `tacotron/ckpt/`.
+3. **Monitor with Tensorboard** (OPTIONAL)
+	```
+	tensorboard --logdir='path to log dir'
+	or
+	python3 -m tensorboard.main --logdir='path to log dir'
+	```
 
 
 ### Testing
-1. **Test with a pre-trained model:**:
+1. Test on 'synthesis.txt' and **generate resynthesized audio files:**:
 	```
-	python3 main.py --test
+	python3 main.py --test --load_test_model_name=model.pth-ae-200000
 	```
 
+2. Test on all the testing speech under `test/` and **generate encoding files:**:
+	```
+	python3 main.py --test_encode --load_test_model_name=model.pth-ae-200000
+	```
 
-## Acknowledgement
-Credits to Ju-chieh Chou for a wonderful Pytorch [implementation](https://github.com/jjery2243542/voice_conversion) of a voice-conversion model, which we leverage the success of that implementation and built upon it. 
+### Switching between datasets
+1. Simply use add **`--dataset=surprise`** to switch to the default alternative set, all paths are handled automatically if the data tree structure is placed as suggested.
+	For example:
+	```
+	python3 main.py --train_ae --dataset=surprise
+	```
 
-## TODO
-* Add more configurable hparams
+## Note
+This code includes all the settings and methods we've tested for this challenge, some of which did not suceess but we did not remove them from our code. However, the previous instructions and default settings are for the method we proposed. By running them one can easily reproduce our results.
+
