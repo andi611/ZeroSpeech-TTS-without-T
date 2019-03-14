@@ -172,7 +172,9 @@ def main():
 		if args.test_single:
 			test_single(trainer, hps.seg_len, args.speaker2id_path, args.result_dir, args.enc_only, args.s_speaker, args.t_speaker)
 		if args.test_encode:
-			test_encode(trainer, hps.seg_len, args.test_path, args.dataset_path, args.result_dir, flag='test')
+			result_dir = os.path.join(args.result_dir, args.sub_result_dir)
+			os.makedirs(result_dir, exist_ok=True)
+			test_encode(trainer, hps.seg_len, args.test_path, args.dataset_path, result_dir, flag='test')
 		if args.test_classify:
 			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
 		if args.encode:
