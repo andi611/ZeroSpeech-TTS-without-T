@@ -275,7 +275,12 @@ class Trainer(object):
 
 
 	def teacher_forcing_step(self, enc, c):
-		x_dec = self.Generator(enc, c)
+		if self.g_mode == 'naive':
+			x_dec = self.Generator(enc, c)
+		elif self.g_mode == 'targeted':
+			x_dec = self.Generator(enc, c - self.shift_c)
+		else:
+			raise NotImplementedError('Invalid generator mode to call teacher_forcing_step()!')
 		return x_dec
 
 
