@@ -14,9 +14,9 @@ import torch
 import numpy as np
 from torch import nn
 from torch.autograd import Variable
-from tacotron.attention import BahdanauAttention, LocationSensitiveAttention
-from tacotron.attention import AttentionRNN
-from tacotron.loss import get_rnn_mask_from_lengths
+from model.tacotron_integrate.attention import BahdanauAttention, LocationSensitiveAttention
+from model.tacotron_integrate.attention import AttentionRNN
+from model.tacotron_integrate.loss import get_rnn_mask_from_lengths
 
 
 ##########

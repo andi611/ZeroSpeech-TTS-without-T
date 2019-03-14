@@ -27,6 +27,7 @@ from trainer import Trainer
 from hps.hps import hp, Hps
 from torch.autograd import Variable
 from preprocess import get_spectrograms
+from model.tacotron.text.symbols import symbols
 
 
 ############
@@ -88,7 +89,7 @@ def get_trainer(hps_path, model_path, g_mode, enc_mode):
 	global MIN_LEN
 	MIN_LEN = MIN_LEN if hps.enc_mode != 'gumbel_t' else hps.seg_len
 	trainer = Trainer(hps, None, g_mode, enc_mode)
-	trainer.load_model(model_path, load_model_list = hps.load_model_list)
+	trainer.load_model(model_path, load_model_list=hps.load_model_list)
 	return trainer
 
 
@@ -96,7 +97,7 @@ def asr(fname):
 	r = sr.Recognizer()
 	with sr.WavFile(fname) as source:
 		audio = r.listen(source)
-	text = r.recognize_google(audio, language = 'en')
+	text = r.recognize_google(audio, language='en')
 	return text
 
 
@@ -179,9 +180,11 @@ def convert(trainer,
 		return wav_data, encodings
 
 
-def encode(src_speaker_spec, trainer, seg_len, s_speaker, utt_id, result_dir=None, save=True):
+def encode(src_speaker_spec, trainer, seg_len, s_speaker=None, utt_id=None, result_dir=None, save=True):
 	if save:
 		assert result_dir != None
+		assert s_speaker != None
+		assert utt_id != None
 
 	# pad spec to minimum len
 	PADDED = False
@@ -426,20 +429,19 @@ def encode_for_tacotron(target, trainer, seg_len, multi2idx_path, wav_path, resu
 		
 
 		_, spec = get_spectrograms(wav_path)
-		encodings = encode(spec, trainer, seg_len, s_speaker=s_id, utt_id=u_id, save=False)
+		encodings = encode(spec, trainer, seg_len, save=False)
 		encodings = parse_encodings(encodings)
 		enc_outputs.append(encodings)
 		names.append((s_id, u_id))
 
 	# build encodings to character mapping
 	idx = 0
-	encoding_symbols = '1234ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 	multi2idx = {}
 	print('[Converter] - Building encoding to symbol mapping...')
 	for encodings in tqdm(enc_outputs):
 		for encoding in encodings:
 			if str(encoding) not in multi2idx:
-				multi2idx[str(encoding)] = encoding_symbols[idx]
+				multi2idx[str(encoding)] = symbols[idx]
 				idx += 1
 
 	print('[Converter] - Number of unique discret units: ', len(multi2idx))

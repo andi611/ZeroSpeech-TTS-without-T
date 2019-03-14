@@ -75,8 +75,9 @@ class Hps(object):
 		)
 		if not path is None:
 			self.load(path)
+			print('[HPS Loader] - Loading from: ', path)
 		else:
-			print('Using default parameters since no .json file is provided.')
+			print('[HPS Loader] - Using default parameters since no .json file is provided.')
 			default = \
 				['enhanced', 'continues', 1e-4, 1, 1e-4, 0, 0, 0, 10, 0.01, 0.5, 0.1, 5, 5, 128, 400000, 1024, 1024, 102, 2, 5, 0, 32, 50000, 5000, 5000, 30000, 60000, 10]
 			self._hps = self.hps._make(default)

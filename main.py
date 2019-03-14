@@ -164,8 +164,9 @@ def main():
 		trainer = get_trainer(args.hps_path, model_path, args.g_mode, args.enc_mode)
 
 		if args.test:
-			os.makedirs(os.path.join(args.result_dir, args.sub_result_dir), exist_ok=True)
-			test_from_list(trainer, hps.seg_len, args.synthesis_list, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only)
+			result_dir = os.path.join(args.result_dir, args.sub_result_dir)
+			os.makedirs(result_dir, exist_ok=True)
+			test_from_list(trainer, hps.seg_len, args.synthesis_list, args.dataset_path, args.speaker2id_path, result_dir, args.enc_only)
 		if args.cross_test:
 			cross_test(trainer, hps.seg_len, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, flag='test')
 		if args.test_single:

@@ -19,13 +19,13 @@ from hps.hps import hp
 from torch import nn
 from torch import optim
 from torch.autograd import Variable
-from model import Encoder, Decoder
-from model import TargetClassifier
-from model import SpeakerClassifier
-from model import PatchDiscriminator
-from model import Enhanced_Generator, Patcher
-from tacotron.tacotron import Tacotron, learning_rate_decay
-from tacotron.loss import TacotronLoss
+from model.model import Encoder, Decoder
+from model.model import TargetClassifier
+from model.model import SpeakerClassifier
+from model.model import PatchDiscriminator
+from model.model import Enhanced_Generator, Patcher
+from model.tacotron_integrate.tacotron import Tacotron, learning_rate_decay
+from model.tacotron_integrate.loss import TacotronLoss
 from utils import Logger, cc, to_var
 from utils import grad_clip, reset_grad
 from utils import calculate_gradients_penalty
