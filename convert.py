@@ -114,7 +114,7 @@ def compare_asr(s_wav, t_wav):
 
 
 def parse_encodings(encodings):
-	return [[str(int(e)) + (' ' if i < len(enc)-1 else '') for i, e in enumerate(enc)] for enc in encodings]
+	return [' '.join([str(int(e)) for i, e in enumerate(enc)]) for enc in encodings]
 
 
 def write_encodings(path, encodings):

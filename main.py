@@ -178,7 +178,7 @@ def main():
 		if args.encode:
 			if args.encode_t == None:
 				raise RuntimeError('Please specified encode target! (--encode_t=V001 or --encode_t=V002)')
-			if hps.enc_size >= 6:
+			if hps.enc_size > 6:
 				raise NotImplementedError('Not enough unique symbols to encode all the distinct units! See encode_for_tacotron() in convert.py')
 			encode_for_tacotron(args.encode_t, trainer, hps.seg_len, args.multi2idx_path, wav_path=args.target_path, result_path=args.metadata_path)
 
