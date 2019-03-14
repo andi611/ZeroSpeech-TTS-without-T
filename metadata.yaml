@@ -5,9 +5,14 @@ affiliation:
 abx distance:
   levenshtein
 open source:
-  false
+  true
 system description:
-  a brief description of your system, eventually pointing to a paper
+  Our method is fairly unique, we first learn a mapping from 
+  speech to discret linguistic units in an unsupervised end-to-end setting.
+  After projecting all speech to a set of common discrete units,
+  then we use adversarial training to learn and improve our model's performance of voice conversion between different speakers.
+  We will describe our method in detail by submitting a paper to the Interspeech 2019 Special Workshop,
+  using the author names provided above.
 auxiliary1 description:
   None is used
 auxiliary2 description:
