@@ -120,7 +120,7 @@ def main():
 				   remake=args.remake)
 
 
-	if args.train or args.train_ae or args.train_g or args.train_c or args.train_t:
+	if args.train or args.train_ae or args.train_p or args.train_p_tf or args.train_c or args.train_t:
 		
 		#---create datasets---#
 		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
