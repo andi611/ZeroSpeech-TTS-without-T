@@ -43,6 +43,7 @@ USE_CUDA = torch.cuda.is_available()
 def get_test_args():
 	parser = argparse.ArgumentParser(description='testing arguments')
 	parser.add_argument('--dataset', choices=['english', 'surprise'], default='english', help='which dataset are we testing')
+	parser.add_argument('--test_single', default=False, action='store_true', help='test the trained model on a single file')
 	parser.add_argument('--eval_t', choices=['V001', 'V002', 'None'], default='None', help='target to be evalutated must be either (V001, or V002).')
 
 	ckpt_parser = parser.add_argument_group('ckpt')
@@ -175,29 +176,41 @@ def main():
 		multi2idx = json.load(f_json)
 
 
-	#---parse testing list---#
-	print('[Tacotron] - Testing from list: ', args.synthesis_list)
-	valid_arguments(valid_target=args.dataset, arg=args.synthesis_list)
-	feeds = []
-	with open(args.synthesis_list, 'r') as f:
-		file = f.readlines()
-		for line in file:
-			line = line.split('\n')[0].split(' ')
-			feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
-						  'utt_id' : line[0].split('/')[1].split('_')[1], 
-						  't_id' : line[1], })
-	print('[Tester] - Number of files to be resynthesize: ', len(feeds))
+	if not args.test_single:
+		#---parse testing list---#
+		print('[Tacotron] - Testing from list: ', args.synthesis_list)
+		valid_arguments(valid_target=args.dataset, arg=args.synthesis_list)
+		feeds = []
+		with open(args.synthesis_list, 'r') as f:
+			file = f.readlines()
+			for line in file:
+				line = line.split('\n')[0].split(' ')
+				feeds.append({'s_id' : line[0].split('/')[1].split('_')[0],
+							  'utt_id' : line[0].split('/')[1].split('_')[1], 
+							  't_id' : line[1], })
+		print('[Tester] - Number of files to be resynthesize: ', len(feeds))
 
-	for feed in tqdm(feeds):
-		if feed['t_id'] == args.eval_t:
-			wav_path = os.path.join(args.testing_dir, feed['s_id'] + '_' + feed['utt_id'] + '.wav')
-			_, spec = get_spectrograms(wav_path)
-			encodings = encode(spec, trainer, hps.seg_len, save=False)
-			encodings = parse_encodings(encodings)
-			line = ''.join([multi2idx[encoding] for encoding in encodings])
-			print(line)
-			out_path = os.path.join(result_dir, feed['t_id'] + '_' + feed['utt_id'] + '.wav')
-			synthesis_speech(model, text=line, path=out_path)
+		for feed in tqdm(feeds):
+			if feed['t_id'] == args.eval_t:
+				wav_path = os.path.join(args.testing_dir, feed['s_id'] + '_' + feed['utt_id'] + '.wav')
+				_, spec = get_spectrograms(wav_path)
+				encodings = encode(spec, trainer, hps.seg_len, save=False)
+				encodings = parse_encodings(encodings)
+				line = ''.join([multi2idx[encoding] for encoding in encodings])
+				print(line)
+				out_path = os.path.join(result_dir, feed['t_id'] + '_' + feed['utt_id'] + '.wav')
+				synthesis_speech(model, text=line, path=out_path)
+	else:
+		wav_path = './data/english/train/voice/V002_0674932509.wav' 
+		# wav_path = './data/english/train/voice/V002_2252538703.wav' 
+		# wav_path = './data/english/train/voice/V002_1665800749.wav' 
+		_, spec = get_spectrograms(wav_path)
+		encodings = encode(spec, trainer, hps.seg_len, save=False)
+		encodings = parse_encodings(encodings)
+		line = ''.join([multi2idx[encoding] for encoding in encodings])
+		print(line)
+		synthesis_speech(model, text=line, path='./result/result.wav')
+
 
 	# model.decoder.max_decoder_steps = config.max_decoder_steps # Set large max_decoder steps to handle long sentence outputs
 		
