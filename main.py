@@ -145,9 +145,14 @@ def main():
 			# trainer.train(model_path, args.flag, mode='train') 		# Deprecated: Stage 1 training
 			trainer.reset_keep()
 
-		if args.train or args.train_g:	
+		if args.train or args.train_p:	
 			trainer.add_duo_loader(source_loader, target_loader)
 			trainer.train(model_path, args.flag, mode='patchGAN')		# Stage 2 training
+			trainer.reset_keep()
+
+		if args.train or args.train_p_tf:	
+			trainer.add_duo_loader(source_loader, target_loader)
+			trainer.train(model_path, args.flag, mode='patchGAN_teacher_forcing') # Stage 2 training
 			trainer.reset_keep()
 			
 		if args.train or args.train_c:	
