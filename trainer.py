@@ -314,7 +314,7 @@ class Trainer(object):
 		return acc
 
 
-	def train(self, model_path, flag='train', mode='train'):
+	def train(self, model_path, flag='train', mode='train', teacher_forcing=False):
 		# load hyperparams
 		hps = self.hps
 
@@ -424,6 +424,7 @@ class Trainer(object):
 					if iteration % 100 == 0:
 						for tag, value in info.items():
 							self.logger.scalar_summary(tag, value, iteration + 1)
+							
 				#==================train G==================#
 				data = next(self.data_loader)
 				c, x = self.permute_data(data)
@@ -465,97 +466,6 @@ class Trainer(object):
 			print()
 
 		elif mode == 'patchGAN':
-			for iteration in range(hps.patch_iters):
-				#==================train D==================#
-				for step in range(hps.n_patch_steps):
-					
-					data_s = next(self.source_loader)
-					data_t = next(self.target_loader)
-					_, x_s = self.permute_data(data_s)
-					c, x_t = self.permute_data(data_t)
-					
-					# encode
-					enc_act, enc = self.encode_step(x_s)
-					
-					# sample c
-					c_prime = self.sample_c(x_t.size(0))
-					
-					# generator
-					x_dec = self.gen_step(enc_act, c_prime)
-					
-					# discriminstor
-					w_dis, real_logits, gp = self.patch_step(x_t, x_dec, is_dis=True)
-					
-					# aux classification loss 
-					loss_clf = self.cal_loss(real_logits, c, shift=True)
-					
-					loss = -hps.beta_dis * w_dis + hps.beta_clf * loss_clf + hps.lambda_ * gp
-					reset_grad([self.PatchDiscriminator])
-					loss.backward()
-					grad_clip([self.PatchDiscriminator], hps.max_grad_norm)
-					self.patch_opt.step()
-					
-					# calculate acc
-					acc = self.cal_acc(real_logits, c, shift=True)
-					info = {
-						f'{flag}/w_dis': w_dis.item(),
-						f'{flag}/gp': gp.item(), 
-						f'{flag}/real_loss_clf': loss_clf.item(),
-						f'{flag}/real_acc': acc, 
-					}
-					slot_value = (step, iteration+1, hps.patch_iters) + tuple([value for value in info.values()])
-					log = 'patch_D-%d:[%06d/%06d], w_dis=%.2f, gp=%.2f, loss_clf=%.2f, acc=%.2f'
-					print(log % slot_value, end='\r')
-					
-					if iteration % 100 == 0:
-						for tag, value in info.items():
-							self.logger.scalar_summary(tag, value, iteration + 1)
-
-				#==================train G==================#
-				data_s = next(self.source_loader)
-				data_t = next(self.target_loader)
-				_, x_s = self.permute_data(data_s)
-				_, x_t = self.permute_data(data_t)
-
-				# encode
-				enc_act, _ = self.encode_step(x_s)
-				
-				# sample c
-				c_prime = self.sample_c(x_t.size(0))
-				
-				# generator
-				x_dec = self.gen_step(enc_act, c_prime)
-				
-				# discriminstor
-				loss_adv, fake_logits = self.patch_step(x_t, x_dec, is_dis=False)
-				
-				# aux classification loss 
-				loss_clf = self.cal_loss(fake_logits, c_prime, shift=True)
-				loss = hps.beta_clf * loss_clf + hps.beta_gen * loss_adv
-				reset_grad([self.Generator])
-				loss.backward()
-				grad_clip([self.Generator], hps.max_grad_norm)
-				self.gen_opt.step()
-				
-				# calculate acc
-				acc = self.cal_acc(fake_logits, c_prime, shift=True)
-				info = {
-					f'{flag}/loss_adv': loss_adv.item(),
-					f'{flag}/fake_loss_clf': loss_clf.item(),
-					f'{flag}/fake_acc': acc, 
-				}
-				slot_value = (iteration+1, hps.patch_iters) + tuple([value for value in info.values()])
-				log = 'patch_G:[%06d/%06d], loss_adv=%.2f, loss_clf=%.2f, acc=%.2f'
-				print(log % slot_value, end='\r')
-				
-				if iteration % 100 == 0:
-					for tag, value in info.items():
-						self.logger.scalar_summary(tag, value, iteration + 1)
-				if (iteration + 1) % 1000 == 0:
-					self.save_model(model_path, 's2', iteration + 1)
-			print()
-
-		elif mode == 'patchGAN_teacher_forcing':
 			for iteration in range(hps.patch_iters):
 				#==================train D==================#
 				for step in range(hps.n_patch_steps):
@@ -628,13 +538,14 @@ class Trainer(object):
 				grad_clip([self.Generator], hps.max_grad_norm)
 				self.gen_opt.step()
 
-				# teacher forcing
-				enc_tf, _ = self.encode_step(x_t)
-				x_dec_tf = self.teacher_forcing_step(enc_tf, c_t)
-				loss_rec = torch.mean(torch.abs(x_dec_tf - x_t))
-				reset_grad([self.Generator])
-				loss_rec.backward()
-				self.gen_opt.step()
+				if teacher_forcing:
+					# teacher forcing
+					enc_tf, _ = self.encode_step(x_t)
+					x_dec_tf = self.teacher_forcing_step(enc_tf, c_t)
+					loss_rec = torch.mean(torch.abs(x_dec_tf - x_t))
+					reset_grad([self.Generator])
+					loss_rec.backward()
+					self.gen_opt.step()
 				
 				# calculate acc
 				acc = self.cal_acc(fake_logits, c_prime, shift=True)
@@ -642,7 +553,7 @@ class Trainer(object):
 					f'{flag}/loss_adv': loss_adv.item(),
 					f'{flag}/fake_loss_clf': loss_clf.item(),
 					f'{flag}/fake_acc': acc, 
-					f'{flag}/tf_rec': loss_rec.item(), 
+					f'{flag}/tf_rec': loss_rec.item() if teacher_forcing: else 0.000, 
 				}
 				slot_value = (iteration+1, hps.patch_iters) + tuple([value for value in info.values()])
 				log = 'patch_G:[%06d/%06d], loss_adv=%.2f, loss_clf=%.2f, acc=%.2f, tf_rec=%.3f'
