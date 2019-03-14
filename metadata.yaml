@@ -7,7 +7,7 @@ abx distance:
 open source:
   true
 system description:
-  Our method is fairly unique, we first learn a mapping from 
+  Our method is fairly unique and original, we first learn a mapping from 
   speech to discret linguistic units in an unsupervised end-to-end setting.
   After projecting all speech to a set of common discrete units,
   then we use adversarial training to learn and improve our model's performance of voice conversion between different speakers.
