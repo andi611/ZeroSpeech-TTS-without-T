@@ -56,40 +56,44 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 
 ### Training
 
-1. **Train stage 1 model:**
+1. **Train stage 1 ASR-TTS model:**
 	```
 	python3 main.py --train_ae
 	```
-
 	Tunable hyperparameters can be found in [hps/zerospeech.json](hps/zerospeech.json). 
 	You can adjust these parameters and setting by editing the file, the default hyperparameters are recommended for this project.
 
-2. **Train stage 2 patcher:**
+2. **Train stage 2 TTS patcher:**
 	```
-	python3 main.py --train_g --load_model --load_train_model_name=model.pth-ae-200000
+	python3 main.py --train_g --load_model --load_train_model_name=model.pth-ae-400000
 	```
 
 3. **Monitor with Tensorboard** (OPTIONAL)
 	```
-	tensorboard --logdir 'path to log_dir'
+	tensorboard --logdir='path to log dir'
+	or
+	python3 -m tensorboard.main --logdir='path to log dir'
 	```
 
 
 ### Testing
-1. **Test on 'synthesis.txt' and generate converted resynthesized audio files:**:
+1. Test on 'synthesis.txt' and **generate resynthesized audio files:**:
 	```
 	python3 main.py --test --load_test_model_name=model.pth-ae-200000
 	```
 
-2. **Test on all the testing speech under `test/` and generate encoding files:**:
+2. Test on all the testing speech under `test/` and **generate encoding files:**:
 	```
 	python3 main.py --test_encode --load_test_model_name=model.pth-ae-200000
 	```
 
 ### Switching between datasets
-1. **Simply use add --dataset=surprise to switch to the default alternative set**, all paths are handled automatically if the data tree structure is placed as suggested.
+1. Simply use add **`--dataset=surprise`** to switch to the default alternative set, all paths are handled automatically if the data tree structure is placed as suggested.
 	For example:
 	```
 	python3 main.py --train_ae --dataset=surprise
 	```
+
+## Note
+This code includes all the settings and methods we've tested for this challenge, some of which did not suceess but we did not remove them from our code. However, the previous instructions and default settings are for the method we proposed. By running them one can easily reproduce our results.
 
