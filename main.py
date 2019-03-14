@@ -46,7 +46,7 @@ def argument_runner():
 	static_setting.add_argument('--enc_only', type=bool, default=bool(0), help='whether to predict only with stage 1 audoencoder')
 	static_setting.add_argument('--s_speaker', type=str, default='S015', help='for the --test_single mode, set voice convergence source speaker')
 	static_setting.add_argument('--t_speaker', type=str, default='V002', help='for the --test_single mode, set voice convergence target speaker')
-	static_setting.add_argument('--encode_t', type=str, default=None, help='target to be encoded by --encode, must be specified (V001, or V002).')
+	static_setting.add_argument('--encode_t', choices=['V001', 'V002'], default=None, help='target to be encoded by --encode, must be specified (V001, or V002).')
 	
 	data_path = parser.add_argument_group('data_path')
 	data_path.add_argument('--dataset', choices=['english', 'surprise'], default='english', help='which dataset to use')
@@ -59,8 +59,8 @@ def argument_runner():
 	data_path.add_argument('--index_source_path', type=str, default='./data/index_english_source.json', help='sample training source segments from the train dataset, for stage 2 training')
 	data_path.add_argument('--index_target_path', type=str, default='./data/index_english_target.json', help='sample training target segments from the train dataset, for stage 2 training')
 	data_path.add_argument('--speaker2id_path', type=str, default='./data/speaker2id_english.json', help='records speaker and speaker id')
-	data_path.add_argument('--multi2idx_path', type=str, default='./data/multi2idx_english.json', help='records encoding and idx mapping')
-	data_path.add_argument('--metadata_path', type=str, default='./data/metadata_english.csv', help='path to store encodings for Tacotron')
+	data_path.add_argument('--multi2idx_path', type=str, default='./data/multi2idx_english_target.json', help='records encoding and idx mapping')
+	data_path.add_argument('--metadata_path', type=str, default='./data/metadata_english_target.csv', help='path to store encodings for Tacotron')
 
 	model_path = parser.add_argument_group('model_path')
 	model_path.add_argument('--hps_path', type=str, default='./hps/zerospeech_english.json', help='hyperparameter path, please refer to the default settings in zerospeech.json')
@@ -177,7 +177,7 @@ def main():
 			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
 		if args.encode:
 			if args.encode_t == None:
-				raise RuntimeError('Please specified encode target! (V001 or V002)')
+				raise RuntimeError('Please specified encode target! (--encode_t=V001 or --encode_t=V002)')
 			if hps.enc_size >= 6:
 				raise NotImplementedError('Not enough unique symbols to encode all the distinct units! See encode_for_tacotron() in convert.py')
 			encode_for_tacotron(args.encode_t, trainer, hps.seg_len, args.multi2idx_path, wav_path=args.target_path, result_path=args.metadata_path)
