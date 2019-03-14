@@ -275,13 +275,14 @@ class Trainer(object):
 
 
 	def teacher_forcing_step(self, enc, c):
+		x_dec = self.Decoder(enc, c)
 		if self.g_mode == 'naive':
-			x_dec = self.Generator(enc, c)
+			x_tf = x_dec + self.Generator(enc, c)
 		elif self.g_mode == 'targeted':
-			x_dec = self.Generator(enc, c - self.shift_c)
+			x_tf = x_dec + self.Generator(enc, c - self.shift_c)
 		else:
 			raise NotImplementedError('Invalid generator mode to call teacher_forcing_step()!')
-		return x_dec
+		return x_tf
 
 
 	def clf_step(self, enc):
