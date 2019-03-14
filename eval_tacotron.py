@@ -23,7 +23,7 @@ import torch
 from torch.autograd import Variable
 #--------------------------------#
 from model.tacotron import audio
-from model.tacotron import config
+from model.tacotron.config import config
 from model.tacotron.text import text_to_sequence, symbols
 from model.tacotron.tacotron import Tacotron
 from convert import get_trainer, encode, parse_encodings
