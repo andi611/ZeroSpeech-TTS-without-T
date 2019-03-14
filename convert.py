@@ -311,6 +311,8 @@ def test_single(trainer, seg_len, speaker2id_path, result_dir, enc_only, s_speak
 		filename = './data/english/test/S130_3516588097.wav' 
 	elif s_speaker == 'S089':
 		filename = './data/english/test/S089_1810826781.wav' 
+	elif s_speaker == 'S378':
+		filename = './data/surprise/test/S378_117437.wav' 
 	else:
 		raise NotImplementedError('Please modify path manually!')
 	
