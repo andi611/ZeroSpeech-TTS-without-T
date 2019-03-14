@@ -413,16 +413,17 @@ def encode_for_tacotron(target, trainer, seg_len, multi2idx_path, wav_path, resu
 	enc_outputs = []
 
 	for wav_path in tqdm(wavs):
-		y, sr = librosa.load(wav_path)
-		d = librosa.get_duration(y=y, sr=sr)
-		if d > 25: 
-			continue # --> this filter out 10 too long utts, 3523/3533
-		
 		name = wav_path.split('/')[-1].split('.')[0]
 		s_id = name.split('_')[0]
 		u_id = name.split('_')[1]
 		if s_id != target:
 			continue
+
+		y, sr = librosa.load(wav_path)
+		d = librosa.get_duration(y=y, sr=sr)
+		if d > 25: 
+			continue # --> this filter out too long utts, 3523/3533 for V001 and V002 together in the english dataset
+		
 
 		_, spec = get_spectrograms(wav_path)
 		encodings = encode(spec, trainer, seg_len, s_speaker=s_id, utt_id=u_id, save=False)
