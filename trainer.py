@@ -624,7 +624,7 @@ class Trainer(object):
 
 				# teacher forcing
 				enc_tf, _ = self.encode_step(x_t)
-				x_dec_tf = teacher_forcing_step(enc_tf, c_t)
+				x_dec_tf = self.teacher_forcing_step(enc_tf, c_t)
 				loss_rec = torch.mean(torch.abs(x_dec_tf - x_t))
 				reset_grad([self.Generator])
 				loss_rec.backward()
