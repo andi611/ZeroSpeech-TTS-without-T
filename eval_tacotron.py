@@ -44,12 +44,14 @@ def get_test_args():
 	parser = argparse.ArgumentParser(description='testing arguments')
 	parser.add_argument('--dataset', choices=['english', 'surprise'], default='english', help='which dataset are we testing')
 
+	ckpt_parser = parser.add_argument_group('ckpt')
+	ckpt_parser.add_argument('--ckpt_dir', type=str, default='./ckpt_tacotron_english/', help='path to the directory where model checkpoints are saved')
+	ckpt_parser.add_argument('--model_name', type=str, default='checkpoint_step500000.pth-english-V002', help='name for the checkpoint file')
+	ckpt_parser.add_argument('--encoder_path', type=str, default='./ckpt_english/model.pth-ae-400000-128-multi-6/', help='path to the encoder model')
+
 	path_parser = parser.add_argument_group('path')
 	path_parser.add_argument('--result_dir', type=str, default='./result/', help='path to output test results')
 	path_parser.add_argument('--sub_result_dir', type=str, default='./english/test', help='sub result directory for generating zerospeech synthesis results')
-	path_parser.add_argument('--encoder_path', type=str, default='./ckpt_english/model.pth-ae-400000-128-multi-6/', help='path to the encoder model')
-	path_parser.add_argument('--ckpt_dir', type=str, default='./ckpt_tacotron_english/', help='path to the directory where model checkpoints are saved')
-	path_parser.add_argument('--model_name', type=str, default='checkpoint_step500000.pth-english-V002', help='name for the checkpoint file')
 	path_parser.add_argument('--testing_dir', type=str, default='./data/english/test', help='path to the input test audios')
 	path_parser.add_argument('--synthesis_list', type=str, default='./data/english/synthesis.txt', help='path to the input test transcripts')
 	path_parser.add_argument('--speaker2id_path', type=str, default='./data/speaker2id_english.json', help='records speaker and speaker id')
