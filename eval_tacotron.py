@@ -23,6 +23,7 @@ import torch
 from torch.autograd import Variable
 #--------------------------------#
 from model.tacotron import audio
+from model.tacotron import config
 from model.tacotron.text import text_to_sequence, symbols
 from model.tacotron.tacotron import Tacotron
 from convert import get_trainer, encode, parse_encodings
@@ -134,13 +135,13 @@ def main():
 
 	# Tacotron implementation: https://github.com/andi611/TTS-Tacotron-Pytorch
 	model = Tacotron(n_vocab=len(symbols),
-					 embedding_dim=256,
-					 mel_dim=80,
-					 linear_dim=1025,
-					 r=5,
-					 padding_idx=None,
-					 attention='LocationSensitive',
-					 use_mask=False)
+					 embedding_dim=config.embedding_dim,
+					 mel_dim=config.num_mels,
+					 linear_dim=config.num_freq,
+					 r=config.outputs_per_step,
+					 padding_idx=config.padding_idx,
+					 attention=config.attention,
+					 use_mask=config.use_mask)
 
 
 	#---handle path---#
