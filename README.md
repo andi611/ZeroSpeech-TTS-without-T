@@ -27,7 +27,7 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	```
 	wget https://download.zerospeech.com/2019/surprise.zip
 	unzip surprise.zip -d data
-	>> enter the password when prompted for:  9kneopShevtat]
+	>> enter the password when prompted for: 9kneopShevtat]
 	rm -f surprise.zip
 	```
 	
@@ -54,6 +54,8 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	python3 main.py --preprocess
 	```
 
+## Usage
+
 ### Training
 
 1. **Train stage 1 ASR-TTS model:**
@@ -65,10 +67,15 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 
 2. **Train stage 2 TTS patcher:**
 	```
-	python3 main.py --train_g --load_model --load_train_model_name=model.pth-ae-400000
+	python3 main.py --train_p --load_model --load_train_model_name=model.pth-ae-400000
 	```
 
-3. **Monitor with Tensorboard** (OPTIONAL)
+3. **Train stage 2 TTS patcher with teacher forcing:**
+	```
+	python3 main.py --train_p_tf --load_model --load_train_model_name=model.pth-ae-400000
+	```
+
+4. **Monitor with Tensorboard** (OPTIONAL)
 	```
 	tensorboard --logdir='path to log dir'
 	or
@@ -77,14 +84,26 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 
 
 ### Testing
-1. Test on 'synthesis.txt' and **generate resynthesized audio files:**:
+1. Test on a single speech::
+	```
+	python3 main.py --test_single --load_test_model_name=model.pth-ae-200000
+	```
+
+2. Test on 'synthesis.txt' and **generate resynthesized audio files:**:
 	```
 	python3 main.py --test --load_test_model_name=model.pth-ae-200000
 	```
 
-2. Test on all the testing speech under `test/` and **generate encoding files:**:
+3. Test on all the testing speech under `test/` and **generate encoding files:**:
 	```
 	python3 main.py --test_encode --load_test_model_name=model.pth-ae-200000
+	```
+
+4. Add **`--enc_only`** if testing with ASR-TTS autoencoder only:
+	```
+	python3 main.py --test_single --load_test_model_name=model.pth-ae-200000 --enc_only
+	python3 main.py --test --load_test_model_name=model.pth-ae-200000 --enc_only
+	python3 main.py --test_encode --load_test_model_name=model.pth-ae-200000 --enc_only
 	```
 
 ### Switching between datasets
@@ -93,6 +112,10 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	```
 	python3 main.py --train_ae --dataset=surprise
 	```
+
+### Trained-Models
+1. We provide trained models as ckpt files, and can be loaded by `--load_train_model_name` or `--load_test_model_name` by specifying ckpt's name (`--ckpt_dir=./ckpt_english` or `--ckpt_dir=./ckpt_surprise` by default).
+2. Donwload Link: [ZeroSpeech_Ckpts]()
 
 ## Note
 This code includes all the settings and methods we've tested for this challenge, some of which did not suceess but we did not remove them from our code. However, the previous instructions and default settings are for the method we proposed. By running them one can easily reproduce our results.
