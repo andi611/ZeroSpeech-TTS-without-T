@@ -278,23 +278,12 @@ class Trainer(object):
 		if self.g_mode == 'naive':
 			x_gen = x_dec + self.Generator(enc, c)
 		elif self.g_mode == 'targeted':
-			x_gen = x_dec + self.Generator(enc, c - self.shift_c)
+			x_gen = (x_dec + (x_dec * self.Generator(enc, c - self.shift_c))) / 2.0
 		elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 			x_gen = x_dec + self.Generator(x_dec, c - self.shift_c)
 		else:
 			raise NotImplementedError('Invalid generator mode to call gen_step()!')
 		return x_gen 
-
-
-	def teacher_forcing_step(self, enc, c):
-		x_dec = self.Decoder(enc, c)
-		if self.g_mode == 'naive':
-			x_tf = x_dec + self.Generator(enc, c)
-		elif self.g_mode == 'targeted':
-			x_tf = x_dec + self.Generator(enc, c - self.shift_c)
-		else:
-			raise NotImplementedError('Invalid generator mode to call teacher_forcing_step()!')
-		return x_tf
 
 
 	def clf_step(self, enc):
@@ -553,7 +542,7 @@ class Trainer(object):
 				if teacher_forcing:
 					# teacher forcing
 					enc_tf, _ = self.encode_step(x_t)
-					x_dec_tf = self.teacher_forcing_step(enc_tf, c_t)
+					x_dec_tf = self.gen_step(enc_tf, c_t)
 					loss_rec = torch.mean(torch.abs(x_dec_tf - x_t))
 					reset_grad([self.Generator])
 					loss_rec.backward()
