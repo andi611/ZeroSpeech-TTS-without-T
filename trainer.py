@@ -591,10 +591,10 @@ class Trainer(object):
 				residual_output = self.gen_step(enc_act, c_prime)
 				
 				# re-encode
-				re_enc = self.encode_step(residual_output)
+				re_enc, _ = self.encode_step(residual_output)
 				
 				# re-encode loss
-				loss_reenc = criterion(re_enc, enc_act)
+				loss_reenc = criterion(re_enc, enc_act.data)
 				reset_grad([self.Generator])
 				loss_reenc.backward()
 				grad_clip([self.Generator], hps.max_grad_norm)
