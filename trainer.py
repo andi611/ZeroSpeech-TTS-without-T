@@ -134,23 +134,35 @@ class Trainer(object):
 		all_model = torch.load(model_path)
 		if verbose: print('[Trainer] - ', end = '')
 		if 'encoder' in load_model_list:
-			self.Encoder.load_state_dict(all_model['encoder'])
-			if verbose: print('[encoder], ', end = '')
+			try:
+				self.Encoder.load_state_dict(all_model['encoder'])
+				if verbose: print('[encoder], ', end = '')
+			except: print('[encoder - X], ', end = '')
 		if 'decoder' in load_model_list:
-			self.Decoder.load_state_dict(all_model['decoder'])
-			if verbose: print('[decoder], ', end = '')
+			try:
+				self.Decoder.load_state_dict(all_model['decoder'])
+				if verbose: print('[decoder], ', end = '')
+			except: print('[generator - X], ', end = '')
 		if 'generator' in load_model_list:
-			self.Generator.load_state_dict(all_model['generator'])
-			if verbose: print('[generator], ', end = '')
+			try:
+				self.Generator.load_state_dict(all_model['generator'])
+				if verbose: print('[generator], ', end = '')
+			except: print('[generator - X], ', end = '')
 		if 'classifier' in load_model_list:
-			self.SpeakerClassifier.load_state_dict(all_model['classifier'])
-			if verbose: print('[classifier], ', end = '')
+			try:
+				self.SpeakerClassifier.load_state_dict(all_model['classifier'])
+				if verbose: print('[classifier], ', end = '')
+			except: print('[classifier - X], ', end = '')
 		if 'patch_discriminator' in load_model_list:
-			self.PatchDiscriminator.load_state_dict(all_model['patch_discriminator'])
-			if verbose: print('[patch_discriminator], ', end = '')
+			try:
+				self.PatchDiscriminator.load_state_dict(all_model['patch_discriminator'])
+				if verbose: print('[patch_discriminator], ', end = '')
+			except: print('[patch_discriminator - X], ', end = '')
 		if 'target_classifier' in load_model_list:
-			self.TargetClassifier.load_state_dict(all_model['target_classifier'])
-			if verbose: print('[target_classifier], ', end = '')
+			try:
+				self.TargetClassifier.load_state_dict(all_model['target_classifier'])
+				if verbose: print('[target_classifier], ', end = '')
+			except: print('[target_classifier - X], ', end = '')
 		if verbose: print('Loaded!')
 
 
