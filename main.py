@@ -25,12 +25,15 @@ from dataloader import Dataset, DataLoader
 def argument_runner():
 	parser = argparse.ArgumentParser(description='zerospeech_project')
 	parser.add_argument('--preprocess', default=False, action='store_true', help='preprocess the zerospeech dataset')
+	
 	parser.add_argument('--train', default=False, action='store_true', help='start all training')
 	parser.add_argument('--train_ae', default=False, action='store_true', help='start auto-encoder training')
 	parser.add_argument('--train_p', default=False, action='store_true', help='start patcher-generator training')
 	parser.add_argument('--train_p_tf', default=False, action='store_true', help='start pathcer-generator training with teacher forcing')
+	parser.add_argument('--train_al', default=False, action='store_true', help='start auto-locker training with teacher forcing')
 	parser.add_argument('--train_c', default=False, action='store_true', help='start target classifier training')
 	parser.add_argument('--train_t', default=False, action='store_true', help='start tacotron training')
+
 	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on the testing list provided at --synthesis_list')
 	parser.add_argument('--test_asr', default=False, action='store_true', help='test the trained model with asr on the testing list provided at --synthesis_list')
 	parser.add_argument('--cross_test', default=False, action='store_true', help='test the trained model on all testing files')
@@ -121,7 +124,7 @@ def main():
 				   remake=args.remake)
 
 
-	if args.train or args.train_ae or args.train_p or args.train_p_tf or args.train_c or args.train_t:
+	if args.train or args.train_ae or args.train_p or args.train_p_tf or args.train_al or args.train_c or args.train_t:
 		
 		#---create datasets---#
 		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
@@ -150,6 +153,11 @@ def main():
 		if args.train or args.train_p or args.train_p_tf:	
 			trainer.add_duo_loader(source_loader, target_loader)
 			trainer.train(model_path, args.flag, mode='patchGAN', teacher_forcing=args.train_p_tf)		# Stage 2 training
+			trainer.reset_keep()
+
+		if args.train or args.train_al:	
+			trainer.add_duo_loader(source_loader, target_loader)
+			trainer.train(model_path, args.flag, mode='autolocker', teacher_forcing=True)		# Stage 2 training
 			trainer.reset_keep()
 			
 		if args.train or args.train_c:	
