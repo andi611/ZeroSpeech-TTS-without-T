@@ -54,6 +54,8 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	python3 main.py --preprocess
 	```
 
+## Usage
+
 ### Training
 
 1. **Train stage 1 ASR-TTS model:**
