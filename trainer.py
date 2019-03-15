@@ -596,7 +596,7 @@ class Trainer(object):
 				
 				# re-encode loss
 				loss_reenc = criterion(re_enc, enc_act.data)
-				reset_grad([self.Generator])
+				reset_grad([self.Encoder, self.Decoder, self.Generator])
 				loss_reenc.backward()
 				grad_clip([self.Generator], hps.max_grad_norm)
 				self.gen_opt.step()
@@ -606,7 +606,7 @@ class Trainer(object):
 					enc_tf, _ = self.encode_step(x_t)
 					x_dec_tf = self.gen_step(enc_tf, c_t)
 					loss_rec = torch.mean(torch.abs(x_dec_tf - x_t))
-					reset_grad([self.Generator])
+					reset_grad([self.Encoder, self.Decoder, self.Generator])
 					loss_rec.backward()
 					self.gen_opt.step()
 				
