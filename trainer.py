@@ -319,7 +319,7 @@ class Trainer(object):
 		return acc
 
 
-	def train(self, model_path, flag='train', mode='train', teacher_forcing=False):
+	def train(self, model_path, flag='train', mode='train', target_guided=False):
 		# load hyperparams
 		hps = self.hps
 
@@ -543,7 +543,7 @@ class Trainer(object):
 				grad_clip([self.Generator], hps.max_grad_norm)
 				self.gen_opt.step()
 
-				if teacher_forcing:
+				if target_guided:
 					# teacher forcing
 					enc_tf, _ = self.encode_step(x_t)
 					x_dec_tf = self.gen_step(enc_tf, c_t)
@@ -558,10 +558,10 @@ class Trainer(object):
 					f'{flag}/loss_adv': loss_adv.item(),
 					f'{flag}/fake_loss_clf': loss_clf.item(),
 					f'{flag}/fake_acc': acc, 
-					f'{flag}/tf_rec': loss_rec.item() if teacher_forcing else 0.000, 
+					f'{flag}/tg_rec': loss_rec.item() if target_guided else 0.000, 
 				}
 				slot_value = (iteration+1, hps.patch_iters) + tuple([value for value in info.values()])
-				log = 'patch_G:[%06d/%06d], loss_adv=%.2f, loss_clf=%.2f, acc=%.2f, tf_rec=%.3f'
+				log = 'patch_G:[%06d/%06d], loss_adv=%.2f, loss_clf=%.2f, acc=%.2f, tg_rec=%.3f'
 				print(log % slot_value, end='\r')
 				
 				if iteration % 100 == 0:
@@ -600,7 +600,7 @@ class Trainer(object):
 				grad_clip([self.Generator], hps.max_grad_norm)
 				self.gen_opt.step()
 
-				if teacher_forcing:
+				if target_guided:
 					# teacher forcing
 					enc_tf, _ = self.encode_step(x_t)
 					x_dec_tf = self.gen_step(enc_tf, c_t)
@@ -612,10 +612,10 @@ class Trainer(object):
 				# calculate acc
 				info = {
 					f'{flag}/re_enc': loss_reenc.item(),
-					f'{flag}/tf_rec': loss_rec.item() if teacher_forcing else 0.000, 
+					f'{flag}/tg_rec': loss_rec.item() if target_guided else 0.000, 
 				}
 				slot_value = (iteration+1, hps.patch_iters) + tuple([value for value in info.values()])
-				log = 'patch_G:[%06d/%06d], re_enc=%.3f, tf_rec=%.3f'
+				log = 'patch_G:[%06d/%06d], re_enc=%.3f, tg_rec=%.3f'
 				print(log % slot_value, end='\r')
 				
 				if iteration % 100 == 0:
