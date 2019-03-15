@@ -221,7 +221,7 @@ def encode(src_speaker_spec, trainer, seg_len, s_speaker=None, utt_id=None, resu
 		return encodings
 
 
-def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path, result_dir, enc_only, flag='test'):
+def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path, result_dir, enc_only, flag='test', run_asr=False):
 	
 	with open(speaker2id_path, 'r') as f_json:
 		speaker2id = json.load(f_json)
@@ -253,11 +253,12 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 								 		   enc_only=enc_only,
 								 		   save=['wav'])
 			n_frames = len(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
-			if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 3.0:
-				orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
-				sf.write('orig_audio.wav', orig_audio, hp.sr, 'PCM_16')
-				err_results.append(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
-				os.remove(path='orig_audio.wav')
+			if run_asr:
+				if hp.frame_shift * (n_frames - 1) + hp.frame_length >= 3.0:
+					orig_audio = spectrogram2wav(f_h5[f"test/{feed['s_id']}/{feed['utt_id']}/lin"][()])
+					sf.write('orig_audio.wav', orig_audio, hp.sr, 'PCM_16')
+					err_results.append(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
+					os.remove(path='orig_audio.wav')
 
 	err_mean = np.mean(err_results, axis=0)
 	print('WERR: {:.3f}  CERR: {:.3f}, computed over {} samples'.format(err_mean[0], err_mean[1], len(err_results)))

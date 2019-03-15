@@ -32,6 +32,7 @@ def argument_runner():
 	parser.add_argument('--train_c', default=False, action='store_true', help='start target classifier training')
 	parser.add_argument('--train_t', default=False, action='store_true', help='start tacotron training')
 	parser.add_argument('--test', default=False, action='store_true', help='test the trained model on the testing list provided at --synthesis_list')
+	parser.add_argument('--test_asr', default=False, action='store_true', help='test the trained model with asr on the testing list provided at --synthesis_list')
 	parser.add_argument('--cross_test', default=False, action='store_true', help='test the trained model on all testing files')
 	parser.add_argument('--test_single', default=False, action='store_true', help='test the trained model on a single file')
 	parser.add_argument('--test_encode', default=False, action='store_true', help='test the trained model encoding ability by generating encodings')
@@ -162,16 +163,16 @@ def main():
 			trainer.reset_keep()
 
 
-	if args.test or args.cross_test or args.test_single or args.test_encode or args.test_classify or args.encode:
+	if args.test or args.test_asr or args.cross_test or args.test_single or args.test_encode or args.test_classify or args.encode:
 
 		os.makedirs(args.result_dir, exist_ok=True)
 		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
 		trainer = get_trainer(args.hps_path, model_path, args.g_mode, args.enc_mode)
 
-		if args.test:
+		if args.test or args.test_asr:
 			result_dir = os.path.join(args.result_dir, args.sub_result_dir)
 			os.makedirs(result_dir, exist_ok=True)
-			test_from_list(trainer, hps.seg_len, args.synthesis_list, args.dataset_path, args.speaker2id_path, result_dir, args.enc_only)
+			test_from_list(trainer, hps.seg_len, args.synthesis_list, args.dataset_path, args.speaker2id_path, result_dir, args.enc_only, run_asr=args.test_asr)
 		if args.cross_test:
 			cross_test(trainer, hps.seg_len, args.dataset_path, args.speaker2id_path, args.result_dir, args.enc_only, flag='test')
 		if args.test_single:

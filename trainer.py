@@ -73,7 +73,7 @@ class Trainer(object):
 		#---stage two---#
 		if self.g_mode == 'naive':
 			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_speakers, seg_len=seg_len))
-		elif self.g_mode == 'targeted':
+		elif self.g_mode == 'targeted' or self.g_mode == 'targeted_residual':
 			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		elif self.g_mode == 'enhanced':
 			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=1024, emb_size=1024, seg_len=seg_len, n_speakers=hps.n_speakers))
@@ -134,23 +134,35 @@ class Trainer(object):
 		all_model = torch.load(model_path)
 		if verbose: print('[Trainer] - ', end = '')
 		if 'encoder' in load_model_list:
-			self.Encoder.load_state_dict(all_model['encoder'])
-			if verbose: print('[encoder], ', end = '')
+			try:
+				self.Encoder.load_state_dict(all_model['encoder'])
+				if verbose: print('[encoder], ', end = '')
+			except: print('[encoder - X], ', end = '')
 		if 'decoder' in load_model_list:
-			self.Decoder.load_state_dict(all_model['decoder'])
-			if verbose: print('[decoder], ', end = '')
+			try:
+				self.Decoder.load_state_dict(all_model['decoder'])
+				if verbose: print('[decoder], ', end = '')
+			except: print('[generator - X], ', end = '')
 		if 'generator' in load_model_list:
-			self.Generator.load_state_dict(all_model['generator'])
-			if verbose: print('[generator], ', end = '')
+			try:
+				self.Generator.load_state_dict(all_model['generator'])
+				if verbose: print('[generator], ', end = '')
+			except: print('[generator - X], ', end = '')
 		if 'classifier' in load_model_list:
-			self.SpeakerClassifier.load_state_dict(all_model['classifier'])
-			if verbose: print('[classifier], ', end = '')
+			try:
+				self.SpeakerClassifier.load_state_dict(all_model['classifier'])
+				if verbose: print('[classifier], ', end = '')
+			except: print('[classifier - X], ', end = '')
 		if 'patch_discriminator' in load_model_list:
-			self.PatchDiscriminator.load_state_dict(all_model['patch_discriminator'])
-			if verbose: print('[patch_discriminator], ', end = '')
+			try:
+				self.PatchDiscriminator.load_state_dict(all_model['patch_discriminator'])
+				if verbose: print('[patch_discriminator], ', end = '')
+			except: print('[patch_discriminator - X], ', end = '')
 		if 'target_classifier' in load_model_list:
-			self.TargetClassifier.load_state_dict(all_model['target_classifier'])
-			if verbose: print('[target_classifier], ', end = '')
+			try:
+				self.TargetClassifier.load_state_dict(all_model['target_classifier'])
+				if verbose: print('[target_classifier], ', end = '')
+			except: print('[target_classifier - X], ', end = '')
 		if verbose: print('Loaded!')
 
 
@@ -193,6 +205,8 @@ class Trainer(object):
 				x_dec += self.Generator(enc, c)
 			elif self.g_mode == 'targeted':
 				x_dec += self.Generator(enc, c - self.testing_shift_c)
+			elif self.g_mode == 'targeted_residual':
+				x_dec += (x_dec * self.Generator(enc, c - self.testing_shift_c)) / 2.0
 			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
 			elif self.g_mode == 'tacotron':
@@ -267,22 +281,13 @@ class Trainer(object):
 			x_gen = x_dec + self.Generator(enc, c)
 		elif self.g_mode == 'targeted':
 			x_gen = x_dec + self.Generator(enc, c - self.shift_c)
+		elif self.g_mode == 'targeted_residual':
+			x_gen = (x_dec + (x_dec * self.Generator(enc, c - self.shift_c))) / 2.0
 		elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 			x_gen = x_dec + self.Generator(x_dec, c - self.shift_c)
 		else:
 			raise NotImplementedError('Invalid generator mode to call gen_step()!')
 		return x_gen 
-
-
-	def teacher_forcing_step(self, enc, c):
-		x_dec = self.Decoder(enc, c)
-		if self.g_mode == 'naive':
-			x_tf = x_dec + self.Generator(enc, c)
-		elif self.g_mode == 'targeted':
-			x_tf = x_dec + self.Generator(enc, c - self.shift_c)
-		else:
-			raise NotImplementedError('Invalid generator mode to call teacher_forcing_step()!')
-		return x_tf
 
 
 	def clf_step(self, enc):
@@ -541,7 +546,7 @@ class Trainer(object):
 				if teacher_forcing:
 					# teacher forcing
 					enc_tf, _ = self.encode_step(x_t)
-					x_dec_tf = self.teacher_forcing_step(enc_tf, c_t)
+					x_dec_tf = self.gen_step(enc_tf, c_t)
 					loss_rec = torch.mean(torch.abs(x_dec_tf - x_t))
 					reset_grad([self.Generator])
 					loss_rec.backward()
