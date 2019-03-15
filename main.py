@@ -29,8 +29,8 @@ def argument_runner():
 	parser.add_argument('--train', default=False, action='store_true', help='start all training')
 	parser.add_argument('--train_ae', default=False, action='store_true', help='start auto-encoder training')
 	parser.add_argument('--train_p', default=False, action='store_true', help='start patcher-generator training')
-	parser.add_argument('--train_tgat', default=False, action='store_true', help='start pathcer-generator training with teacher forcing')
-	parser.add_argument('--train_al', default=False, action='store_true', help='start auto-locker training with teacher forcing')
+	parser.add_argument('--train_tgat', default=False, action='store_true', help='start pathcer-generator training with target guided adversarial training')
+	parser.add_argument('--train_al', default=False, action='store_true', help='start auto-locker training with target guided training')
 	parser.add_argument('--train_c', default=False, action='store_true', help='start target classifier training')
 	parser.add_argument('--train_t', default=False, action='store_true', help='start tacotron training')
 
