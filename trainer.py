@@ -553,7 +553,7 @@ class Trainer(object):
 					f'{flag}/loss_adv': loss_adv.item(),
 					f'{flag}/fake_loss_clf': loss_clf.item(),
 					f'{flag}/fake_acc': acc, 
-					f'{flag}/tf_rec': loss_rec.item() if teacher_forcing: else 0.000, 
+					f'{flag}/tf_rec': loss_rec.item() if teacher_forcing else 0.000, 
 				}
 				slot_value = (iteration+1, hps.patch_iters) + tuple([value for value in info.values()])
 				log = 'patch_G:[%06d/%06d], loss_adv=%.2f, loss_clf=%.2f, acc=%.2f, tf_rec=%.3f'
