@@ -319,7 +319,7 @@ class Trainer(object):
 		return acc
 
 
-	def train(self, model_path, flag='train', mode='train', teacher_forcing=False):
+	def train(self, model_path, flag='train', mode='train', target_guided=False):
 		# load hyperparams
 		hps = self.hps
 
@@ -543,7 +543,7 @@ class Trainer(object):
 				grad_clip([self.Generator], hps.max_grad_norm)
 				self.gen_opt.step()
 
-				if teacher_forcing:
+				if target_guided:
 					# teacher forcing
 					enc_tf, _ = self.encode_step(x_t)
 					x_dec_tf = self.gen_step(enc_tf, c_t)
@@ -558,10 +558,64 @@ class Trainer(object):
 					f'{flag}/loss_adv': loss_adv.item(),
 					f'{flag}/fake_loss_clf': loss_clf.item(),
 					f'{flag}/fake_acc': acc, 
-					f'{flag}/tf_rec': loss_rec.item() if teacher_forcing else 0.000, 
+					f'{flag}/tg_rec': loss_rec.item() if target_guided else 0.000, 
 				}
 				slot_value = (iteration+1, hps.patch_iters) + tuple([value for value in info.values()])
-				log = 'patch_G:[%06d/%06d], loss_adv=%.2f, loss_clf=%.2f, acc=%.2f, tf_rec=%.3f'
+				log = 'patch_G:[%06d/%06d], loss_adv=%.2f, loss_clf=%.2f, acc=%.2f, tg_rec=%.3f'
+				print(log % slot_value, end='\r')
+				
+				if iteration % 100 == 0:
+					for tag, value in info.items():
+						self.logger.scalar_summary(tag, value, iteration + 1)
+				if (iteration + 1) % 1000 == 0:
+					self.save_model(model_path, 's2', iteration + 1)
+			print()
+		
+
+		elif mode == 'autolocker':
+			criterion = torch.nn.BCELoss()
+			for iteration in range(hps.patch_iters):
+				#==================train G==================#
+				data_s = next(self.source_loader)
+				data_t = next(self.target_loader)
+				_, x_s = self.permute_data(data_s)
+				c_t, x_t = self.permute_data(data_t)
+
+				# encode
+				enc_act, _ = self.encode_step(x_s)
+				
+				# sample c
+				c_prime = self.sample_c(x_t.size(0))
+				
+				# decode
+				residual_output = self.gen_step(enc_act, c_prime)
+				
+				# re-encode
+				re_enc, _ = self.encode_step(residual_output)
+				
+				# re-encode loss
+				loss_reenc = criterion(re_enc, enc_act.data)
+				reset_grad([self.Encoder, self.Decoder, self.Generator])
+				loss_reenc.backward()
+				grad_clip([self.Generator], hps.max_grad_norm)
+				self.gen_opt.step()
+
+				if target_guided:
+					# teacher forcing
+					enc_tf, _ = self.encode_step(x_t)
+					x_dec_tf = self.gen_step(enc_tf, c_t)
+					loss_rec = torch.mean(torch.abs(x_dec_tf - x_t))
+					reset_grad([self.Encoder, self.Decoder, self.Generator])
+					loss_rec.backward()
+					self.gen_opt.step()
+				
+				# calculate acc
+				info = {
+					f'{flag}/re_enc': loss_reenc.item(),
+					f'{flag}/tg_rec': loss_rec.item() if target_guided else 0.000, 
+				}
+				slot_value = (iteration+1, hps.patch_iters) + tuple([value for value in info.values()])
+				log = 'patch_G:[%06d/%06d], re_enc=%.3f, tg_rec=%.3f'
 				print(log % slot_value, end='\r')
 				
 				if iteration % 100 == 0:
