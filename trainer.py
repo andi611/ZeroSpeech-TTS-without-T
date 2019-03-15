@@ -23,7 +23,7 @@ from model.model import Encoder, Decoder
 from model.model import TargetClassifier
 from model.model import SpeakerClassifier
 from model.model import PatchDiscriminator
-from model.model import Enhanced_Generator, Patcher
+from model.model import Enhanced_Generator, Spectrogram_Patcher
 from model.tacotron_integrate.tacotron import Tacotron, learning_rate_decay
 from model.tacotron_integrate.loss import TacotronLoss
 from utils import Logger, cc, to_var
@@ -74,11 +74,12 @@ class Trainer(object):
 		if self.g_mode == 'naive':
 			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_speakers, seg_len=seg_len))
 		elif self.g_mode == 'targeted' or self.g_mode == 'targeted_residual':
-			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
+			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len, \
+										output_mask=True if self.g_mode == 'targeted_residual' else False))
 		elif self.g_mode == 'enhanced':
 			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=1024, emb_size=1024, seg_len=seg_len, n_speakers=hps.n_speakers))
 		elif self.g_mode == 'spectrogram':
-			self.Generator = cc(Patcher(ns=ns, c_in=513, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
+			self.Generator = cc(Spectrogram_Patcher(ns=ns, c_in=513, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		elif self.g_mode == 'tacotron':
 			self.Generator = cc(Tacotron(enc_size, hps.n_target_speakers, mel_dim=hp.n_mels, linear_dim=int(hp.n_fft/2)+1))
 			self.tacotron_input_lengths = torch.tensor([self.hps.seg_len//8 for _ in range(hps.batch_size)])

@@ -281,8 +281,9 @@ class SpeakerClassifier(nn.Module):
 
 
 class Decoder(nn.Module):
-	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64):
+	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64, output_mask=False):
 		super(Decoder, self).__init__()
+		self.output_mask = output_mask
 		self.ns = ns
 		self.seg_len = seg_len
 		self.conv1 = nn.Conv1d(c_h, 2*c_h, kernel_size=3)
@@ -311,6 +312,7 @@ class Decoder(nn.Module):
 		self.emb3 = nn.Embedding(c_a, c_h)
 		self.emb4 = nn.Embedding(c_a, c_h)
 		self.emb5 = nn.Embedding(c_a, c_h)
+		self.mask = nn.Tanh()
 
 	def conv_block(self, x, conv_layers, norm_layer, emb, res=True):
 		# first layer
@@ -356,7 +358,10 @@ class Decoder(nn.Module):
 		out = linear(out, self.dense5)
 		out = F.leaky_relu(out, negative_slope=self.ns)
 		out = linear(out, self.linear)
-		out = torch.sigmoid(out)
+		if self.output_mask:
+			out = self.mask(out)
+		else:
+			out = torch.sigmoid(out)
 		return out
 
 
@@ -497,9 +502,9 @@ class Enhanced_Generator(nn.Module):
 		return x_dec
 
 
-class Patcher(nn.Module):
+class Spectrogram_Patcher(nn.Module):
 	def __init__(self, c_in=512, c_out=513, c_h=512, c_a=8, ns=0.2, seg_len=64):
-		super(Patcher, self).__init__()
+		super(Spectrogram_Patcher, self).__init__()
 		self.ns = ns
 		self.seg_len = seg_len
 		self.input_layer = nn.Linear(c_in, c_h)
