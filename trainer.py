@@ -73,7 +73,7 @@ class Trainer(object):
 		#---stage two---#
 		if self.g_mode == 'naive':
 			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_speakers, seg_len=seg_len))
-		elif self.g_mode == 'targeted':
+		elif self.g_mode == 'targeted' or self.g_mode == 'targeted_residual':
 			self.Generator = cc(Decoder(ns=ns, c_in=enc_size, c_h=emb_size, c_a=hps.n_target_speakers, seg_len=seg_len))
 		elif self.g_mode == 'enhanced':
 			self.Generator = cc(Enhanced_Generator(ns=ns, dp=hps.enc_dp, enc_size=1024, emb_size=1024, seg_len=seg_len, n_speakers=hps.n_speakers))
@@ -205,6 +205,8 @@ class Trainer(object):
 				x_dec += self.Generator(enc, c)
 			elif self.g_mode == 'targeted':
 				x_dec += self.Generator(enc, c - self.testing_shift_c)
+			elif self.g_mode == 'targeted_residual':
+				x_dec += (x_dec * self.Generator(enc, c - self.testing_shift_c)) / 2.0
 			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
 			elif self.g_mode == 'tacotron':
@@ -278,6 +280,8 @@ class Trainer(object):
 		if self.g_mode == 'naive':
 			x_gen = x_dec + self.Generator(enc, c)
 		elif self.g_mode == 'targeted':
+			x_gen = x_dec + self.Generator(enc, c - self.shift_c)
+		elif self.g_mode == 'targeted_residual':
 			x_gen = (x_dec + (x_dec * self.Generator(enc, c - self.shift_c))) / 2.0
 		elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 			x_gen = x_dec + self.Generator(x_dec, c - self.shift_c)
