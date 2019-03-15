@@ -70,9 +70,9 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	python3 main.py --train_p --load_model --load_train_model_name=model.pth-ae-400000
 	```
 
-3. **Train stage 2 TTS patcher with teacher forcing:**
+3. **Train stage 2 TTS patcher with target guided adversarial training:**
 	```
-	python3 main.py --train_p_tf --load_model --load_train_model_name=model.pth-ae-400000
+	python3 main.py --train_tgat --load_model --load_train_model_name=model.pth-ae-400000
 	```
 
 4. **Monitor with Tensorboard** (OPTIONAL)

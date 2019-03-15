@@ -29,7 +29,7 @@ def argument_runner():
 	parser.add_argument('--train', default=False, action='store_true', help='start all training')
 	parser.add_argument('--train_ae', default=False, action='store_true', help='start auto-encoder training')
 	parser.add_argument('--train_p', default=False, action='store_true', help='start patcher-generator training')
-	parser.add_argument('--train_p_tf', default=False, action='store_true', help='start pathcer-generator training with teacher forcing')
+	parser.add_argument('--train_tgat', default=False, action='store_true', help='start pathcer-generator training with teacher forcing')
 	parser.add_argument('--train_al', default=False, action='store_true', help='start auto-locker training with teacher forcing')
 	parser.add_argument('--train_c', default=False, action='store_true', help='start target classifier training')
 	parser.add_argument('--train_t', default=False, action='store_true', help='start tacotron training')
@@ -124,7 +124,7 @@ def main():
 				   remake=args.remake)
 
 
-	if args.train or args.train_ae or args.train_p or args.train_p_tf or args.train_al or args.train_c or args.train_t:
+	if args.train or args.train_ae or args.train_p or args.train_tgat or args.train_al or args.train_c or args.train_t:
 		
 		#---create datasets---#
 		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
@@ -150,14 +150,14 @@ def main():
 			# trainer.train(model_path, args.flag, mode='train') 		# Deprecated: Stage 1 training
 			trainer.reset_keep()
 
-		if args.train or args.train_p or args.train_p_tf:	
+		if args.train or args.train_p or args.train_tgat:	
 			trainer.add_duo_loader(source_loader, target_loader)
-			trainer.train(model_path, args.flag, mode='patchGAN', teacher_forcing=args.train_p_tf)		# Stage 2 training
+			trainer.train(model_path, args.flag, mode='patchGAN', target_guided=args.train_tgat)		# Stage 2 training
 			trainer.reset_keep()
 
 		if args.train or args.train_al:	
 			trainer.add_duo_loader(source_loader, target_loader)
-			trainer.train(model_path, args.flag, mode='autolocker', teacher_forcing=True)		# Stage 2 training
+			trainer.train(model_path, args.flag, mode='autolocker', target_guided=True)		# Stage 2 training
 			trainer.reset_keep()
 			
 		if args.train or args.train_c:	
