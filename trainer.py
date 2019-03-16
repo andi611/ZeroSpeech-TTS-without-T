@@ -40,11 +40,7 @@ class Trainer(object):
 		self.logger = Logger(log_dir)
 		self.g_mode = g_mode
 		self.enc_mode = enc_mode
-		if self.g_mode == 'naive': 
-			self.sample_weights = torch.ones(hps.n_speakers)
-		else:
-			self.sample_weights = torch.cat((torch.zeros(hps.n_speakers-hps.n_target_speakers), \
-								    		 torch.ones(hps.n_target_speakers)), dim=0)
+		if self.g_mode != 'naive': 
 			self.shift_c = to_var(torch.from_numpy(np.array([int(hps.n_speakers-hps.n_target_speakers) \
 						   					 for _ in range(hps.batch_size)])), requires_grad=False)
 		self.build_model()
