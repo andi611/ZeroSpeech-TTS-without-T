@@ -7,15 +7,19 @@ abx distance:
 open source:
   true
 system description:
-  We present an end-to-end training scheme where we discover discrete linguistic subword units from speech in an unsupervised way,
-  and we use these discovered units to train a text-to-speech model, without any text transcript.
-  We propose an discrete encoding called multilabel-binary vectors (MBV) for subword units discovery, 
-  which delivers a strong bottleneck for disentangling speech content and speaker style, and is sufficient to represent all the phonemes in a given language.
-  MBV can be learned under an ASR-TTS auto-encoder reconstruction setting,
-  where an ASR-Encoder is trained to discover a set of common linguistic units given a variety of speakers,
-  and a TTS-Decoder trained to project the discovered units back to the original speech.
-  The proposed method was able to encode a whole language down to phoneme-level with just 64 distinct units.
-  As a result, we were able to perform voice conversion between speakers with theses units, using the ASR-Encoder and TTS-Decoder alone.
+  We present an end-to-end training scheme where we discover discrete subword units from speech in an unsupervised way, 
+  then we use these discovered linguistic units to train a text-to-speech model, without any text transcript.
+  We propose an discrete encoding called Multilabel-Binary Vectors (MBV) for subword units discovery, 
+  which delivers a strong bottleneck for disentangling speech content and speaker style, 
+  and is sufficient to represent all the phonemes in a given language.  
+  MBV can be learned under an ASR-TTS auto-encoder reconstruction setting, 
+  where an ASR-Encoder is trained to discover a set of common linguistic units given a variety of speakers, 
+  and a TTS-Decoder trained to project the discovered units back to the original speech. 
+  The proposed method was able to encode a whole language down to phoneme-level with just 64 distinct units. 
+  As a result, we were able to perform voice conversion between speakers with theses units, using the ASR-Encoder and TTS-Decoder alone. 
+  Furthermore, we improve the quality of voice conversion using a second stage adversarial training, 
+  where we train a TTS-patcher that augments the output of TTS-Decoder. 
+  Voice conversion results shows that the discovered hidden units are successful in encoding speech content and well disentangled from style.
   We will describe our method in detail by submitting a paper to the Interspeech 2019 Special Workshop,
   using the author names provided above.
 auxiliary1 description:
