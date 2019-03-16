@@ -28,7 +28,6 @@ def argument_runner():
 	
 	parser.add_argument('--train', default=False, action='store_true', help='start all training')
 	parser.add_argument('--train_ae', default=False, action='store_true', help='start auto-encoder training')
-	parser.add_argument('--train_aep', default=False, action='store_true', help='start auto-encoder and patcher reconstruction training')
 	parser.add_argument('--train_p', default=False, action='store_true', help='start patcher-generator training')
 	parser.add_argument('--train_tgat', default=False, action='store_true', help='start pathcer-generator training with target guided adversarial training')
 	parser.add_argument('--train_al', default=False, action='store_true', help='start auto-locker training with target guided training')
@@ -126,7 +125,7 @@ def main():
 				   remake=args.remake)
 
 
-	if args.train or args.train_ae or args.train_aep or args.train_p or args.train_tgat or args.train_al or args.train_c or args.train_t:
+	if args.train or args.train_ae or args.train_p or args.train_tgat or args.train_al or args.train_c or args.train_t:
 		
 		#---create datasets---#
 		dataset = Dataset(args.dataset_path, args.index_path, seg_len=hps.seg_len)
@@ -146,8 +145,8 @@ def main():
 		trainer = Trainer(hps, data_loader, args.g_mode, args.enc_mode)
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), load_model_list=hps.load_model_list)
 
-		if args.train or args.train_ae or args.train_aep:
-			trainer.train(model_path, args.flag, mode='pretrain_AE', train_patcher=args.train_aep) 	# Stage 1 pre-train: encoder-decoder reconstruction
+		if args.train or args.train_ae:
+			trainer.train(model_path, args.flag, mode='pretrain_AE') 	# Stage 1 pre-train: encoder-decoder reconstruction
 			# trainer.train(model_path, args.flag, mode='pretrain_C')   # Deprecated: Stage 1 pre-train: classifier-1
 			# trainer.train(model_path, args.flag, mode='train') 		# Deprecated: Stage 1 training
 			trainer.reset_keep()

@@ -87,7 +87,6 @@ class Trainer(object):
 																		seg_len=seg_len)))
 		
 		#---stage two opts---#
-		self.aep_opt = optim.Adam(params + list(self.Generator.parameters()), lr=self.hps.lr, betas=betas)
 		self.gen_opt = optim.Adam(self.Generator.parameters(), lr=self.hps.lr, betas=betas)
 		self.patch_opt = optim.Adam(self.PatchDiscriminator.parameters(), lr=self.hps.lr, betas=betas)
 		
@@ -309,7 +308,7 @@ class Trainer(object):
 		return acc
 
 
-	def train(self, model_path, flag='train', mode='train', target_guided=False, train_patcher=None):
+	def train(self, model_path, flag='train', mode='train', target_guided=False):
 		# load hyperparams
 		hps = self.hps
 
@@ -320,18 +319,12 @@ class Trainer(object):
 				
 				# encode
 				enc_act, enc = self.encode_step(x)
-				if train_patcher:
-					x_dec = self.gen_step(enc_act, c)
-				else:
-					x_dec = self.decode_step(enc_act, c)
+				x_dec = self.gen_step(enc_act, c)
 				loss_rec = torch.mean(torch.abs(x_dec - x))
-				reset_grad([self.Encoder, self.Decoder, self.Generator])
+				reset_grad([self.Encoder, self.Decoder])
 				loss_rec.backward()
-				grad_clip([self.Encoder, self.Decoder, self.Generator], hps.max_grad_norm)
-				if train_patcher:
-					self.aep_opt.step()
-				else:
-					self.ae_opt.step()
+				grad_clip([self.Encoder, self.Decoder], hps.max_grad_norm)
+				self.ae_opt.step()
 				
 				# tb info
 				info = {
