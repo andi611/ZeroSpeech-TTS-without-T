@@ -46,7 +46,7 @@ def argument_runner():
 
 	static_setting = parser.add_argument_group('static_setting')
 	static_setting.add_argument('--flag', type=str, default='train', help='constant flag')
-	static_setting.add_argument('--remake', type=bool, default=bool(0), help='whether to remake dataset.hdf5')
+	static_setting.add_argument('--remake', default=False, action='store_true', help='whether to remake dataset.hdf5')
 	static_setting.add_argument('--g_mode', choices=['naive', 'targeted', 'enhanced', 'spectrogram', 'tacotron', 'set_from_hps'], default='set_from_hps', help='different stage two generator settings')
 	static_setting.add_argument('--enc_mode', choices=['continues', 'one_hot', 'binary', 'multilabel_binary', 'gumbel_t', 'set_from_hps'], default='set_from_hps', help='different output method for the encoder to generate encodings')
 	static_setting.add_argument('--enc_only', default=False, action='store_true', help='whether to predict only with stage 1 audoencoder')
@@ -147,7 +147,7 @@ def main():
 		if args.load_model: trainer.load_model(os.path.join(args.ckpt_dir, args.load_train_model_name), load_model_list=hps.load_model_list)
 
 		if args.train or args.train_ae or args.train_aep:
-			trainer.train(model_path, args.flag, mode='pretrain_AE', train_pathcer=args.train_aep) 	# Stage 1 pre-train: encoder-decoder reconstruction
+			trainer.train(model_path, args.flag, mode='pretrain_AE', train_patcher=args.train_aep) 	# Stage 1 pre-train: encoder-decoder reconstruction
 			# trainer.train(model_path, args.flag, mode='pretrain_C')   # Deprecated: Stage 1 pre-train: classifier-1
 			# trainer.train(model_path, args.flag, mode='train') 		# Deprecated: Stage 1 training
 			trainer.reset_keep()
