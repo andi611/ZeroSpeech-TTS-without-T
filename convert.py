@@ -260,8 +260,9 @@ def test_from_list(trainer, seg_len, synthesis_list, data_path, speaker2id_path,
 					err_results.append(compare_asr(s_wav='orig_audio.wav', t_wav=conv_audio))
 					os.remove(path='orig_audio.wav')
 
-	err_mean = np.mean(err_results, axis=0)
-	print('WERR: {:.3f}  CERR: {:.3f}, computed over {} samples'.format(err_mean[0], err_mean[1], len(err_results)))
+	if run_asr:
+		err_mean = np.mean(err_results, axis=0)
+		print('WERR: {:.3f}  CERR: {:.3f}, computed over {} samples'.format(err_mean[0], err_mean[1], len(err_results)))
 
 
 def cross_test(trainer, seg_len, data_path, speaker2id_path, result_dir, enc_only, flag):
