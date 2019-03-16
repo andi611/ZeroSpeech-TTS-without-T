@@ -3,7 +3,7 @@ author:
 affiliation:
   College of Electrical Engineering and Computer Science, National Taiwan University
 abx distance:
-  levenshtein
+  dtw_kl
 open source:
   true
 system description:
