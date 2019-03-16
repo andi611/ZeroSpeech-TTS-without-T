@@ -114,8 +114,18 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	```
 
 ### Trained-Models
-1. We provide trained models as ckpt files, and can be loaded by `--load_train_model_name` or `--load_test_model_name` by specifying ckpt's name (`--ckpt_dir=./ckpt_english` or `--ckpt_dir=./ckpt_surprise` by default).
-2. Donwload Link: [ZeroSpeech_Ckpts]()
+1. We provide trained models as ckpt files, Donwload Link: [ZeroSpeech_Ckpts]()
+2. Reload model for training:
+	```
+	--load_train_model_name=model.pth-ae-400000-128-multi-6-english
+	```
+	(`--ckpt_dir=./ckpt_english` or `--ckpt_dir=./ckpt_surprise` by default).
+3. 2 ways to load model for testing:
+	```
+	--load_test_model_name=model.pth-s2-30000-128-multi-6-tg-r-english
+	--ckpt_pth=ckpt/model.pth-s2-30000-128-multi-6-tg-r-english
+	```
+
 
 ## Note
 This code includes all the settings and methods we've tested for this challenge, some of which did not suceess but we did not remove them from our code. However, the previous instructions and default settings are for the method we proposed. By running them one can easily reproduce our results.

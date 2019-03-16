@@ -73,8 +73,9 @@ def argument_runner():
 	model_path.add_argument('--result_dir', type=str, default='./result', help='result directory for generating test results')
 	model_path.add_argument('--sub_result_dir', type=str, default='./english/', help='sub result directory for generating zerospeech synthesis results')
 	model_path.add_argument('--model_name', type=str, default='model.pth', help='base model name for training')
-	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-ae-424000', help='the model to restore for training, the command --load_model will load this model')
-	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-s2-150000', help='the model to restore for testing, the command --test will load this model')
+	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-ae-424000', help='the model to restore for training, all the --train_* commands will load this model')
+	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-s2-150000', help='the model to restore for testing, all the --test_* commands will load this model')
+	model_path.add_argument('--ckpt_pth', type=str, default=None, help='the direct path to a model ckpt to restore for testing, all the --test_* commands will load this model')
 	args = parser.parse_args()
 	
 	#---reparse if switching dataset---#
@@ -174,7 +175,10 @@ def main():
 	if args.test or args.test_asr or args.cross_test or args.test_single or args.test_encode or args.test_classify or args.encode:
 
 		os.makedirs(args.result_dir, exist_ok=True)
-		model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
+		if args.ckpt_pth is not None:
+			model_path = args.ckpt_pth
+		else:
+			model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
 		trainer = get_trainer(args.hps_path, model_path, args.g_mode, args.enc_mode)
 
 		if args.test or args.test_asr:

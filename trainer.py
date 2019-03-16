@@ -207,7 +207,7 @@ class Trainer(object):
 			elif self.g_mode == 'targeted':
 				x_dec += self.Generator(enc, c - self.testing_shift_c)
 			elif self.g_mode == 'targeted_residual':
-				x_dec += (x_dec * self.Generator(enc, c - self.testing_shift_c))
+				x_dec = (x_dec * 1.0) + (0.7 * x_dec * self.Generator(enc, c - self.testing_shift_c))
 			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
 			elif self.g_mode == 'tacotron':
@@ -527,17 +527,14 @@ class Trainer(object):
 				# encode
 				enc_act, _ = self.encode_step(x_s)
 				
-				# sample c
-				c_prime = self.sample_c(x_t.size(0))
-				
 				# generator
-				x_dec = self.gen_step(enc_act, c_prime)
+				x_dec = self.gen_step(enc_act, c_t)
 				
 				# discriminstor
 				loss_adv, fake_logits = self.patch_step(x_t, x_dec, is_dis=False)
 				
 				# aux classification loss 
-				loss_clf = self.cal_loss(fake_logits, c_prime, shift=True)
+				loss_clf = self.cal_loss(fake_logits, c_t, shift=True)
 				loss = hps.beta_clf * loss_clf + hps.beta_gen * loss_adv
 				reset_grad([self.Generator])
 				loss.backward()
@@ -554,7 +551,7 @@ class Trainer(object):
 					self.gen_opt.step()
 				
 				# calculate acc
-				acc = self.cal_acc(fake_logits, c_prime, shift=True)
+				acc = self.cal_acc(fake_logits, c_t, shift=True)
 				info = {
 					f'{flag}/loss_adv': loss_adv.item(),
 					f'{flag}/fake_loss_clf': loss_clf.item(),
