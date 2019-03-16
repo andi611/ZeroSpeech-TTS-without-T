@@ -93,7 +93,7 @@ def append_emb(emb, expand_size, output):
 def gumbel_softmax(logits, temperature=0.1):
 	
 	def _sample_gumbel(shape, eps=1e-20):
-		U = torch.rand(shape)
+		U = torch.rand(shape, requires_grad=True)
 		dist = -Variable(torch.log(-torch.log(U + eps) + eps))
 		return dist.cuda() if torch.cuda.is_available() else dist
 
