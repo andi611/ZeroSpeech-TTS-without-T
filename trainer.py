@@ -492,7 +492,7 @@ class Trainer(object):
 					self.patch_opt.step()
 					
 					# calculate acc
-					acc = self.cal_acc(real_logits, c, shift=True)
+					acc = self.cal_acc(real_logits, c_t, shift=True)
 					info = {
 						f'{flag}/w_dis': w_dis.item(),
 						f'{flag}/gp': gp.item(), 
