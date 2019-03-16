@@ -243,14 +243,6 @@ class Trainer(object):
 		return C, X
 
 
-	def sample_c(self, size):
-		c_sample = Variable(torch.multinomial(self.sample_weights, 
-							num_samples=size, replacement=True),  
-							requires_grad=False)
-		c_sample = c_sample.cuda() if torch.cuda.is_available() else c_sample
-		return c_sample
-
-
 	def encode_step(self, x):
 		enc_act, enc = self.Encoder(x)
 		return enc_act, enc
@@ -479,22 +471,19 @@ class Trainer(object):
 					data_s = next(self.source_loader)
 					data_t = next(self.target_loader)
 					_, x_s = self.permute_data(data_s)
-					c, x_t = self.permute_data(data_t)
+					c_t, x_t = self.permute_data(data_t)
 					
 					# encode
 					enc_act, _ = self.encode_step(x_s)
 					
-					# sample c
-					c_prime = self.sample_c(x_t.size(0))
-					
 					# generator
-					x_dec = self.gen_step(enc_act, c_prime)
+					x_dec = self.gen_step(enc_act, c_t)
 					
 					# discriminstor
 					w_dis, real_logits, gp = self.patch_step(x_t, x_dec, is_dis=True)
 					
 					# aux classification loss 
-					loss_clf = self.cal_loss(real_logits, c, shift=True)
+					loss_clf = self.cal_loss(real_logits, c_t, shift=True)
 					
 					loss = -hps.beta_dis * w_dis + hps.beta_clf * loss_clf + hps.lambda_ * gp
 					reset_grad([self.PatchDiscriminator])
@@ -582,11 +571,8 @@ class Trainer(object):
 				# encode
 				enc_act, _ = self.encode_step(x_s)
 				
-				# sample c
-				c_prime = self.sample_c(x_t.size(0))
-				
 				# decode
-				residual_output = self.gen_step(enc_act, c_prime)
+				residual_output = self.gen_step(enc_act, c_t)
 				
 				# re-encode
 				re_enc, _ = self.encode_step(residual_output)
