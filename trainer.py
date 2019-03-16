@@ -319,7 +319,7 @@ class Trainer(object):
 				
 				# encode
 				enc_act, enc = self.encode_step(x)
-				x_dec = self.gen_step(enc_act, c)
+				x_dec = self.decode_step(enc_act, c)
 				loss_rec = torch.mean(torch.abs(x_dec - x))
 				reset_grad([self.Encoder, self.Decoder])
 				loss_rec.backward()
