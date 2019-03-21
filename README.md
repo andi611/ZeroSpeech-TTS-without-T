@@ -113,7 +113,7 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	```
 
 ### Trained-Models
-1. We provide trained models as ckpt files, Donwload Link: [ZeroSpeech_Ckpts]()
+1. We provide trained models as ckpt files, Donwload Link: [ZeroSpeech_Ckpts](https://drive.google.com/drive/folders/1Ba1XRWdO3HcHNkWgw2KknPmYnM_u1S-Q?usp=sharing)
 2. Reload model for training:
 	```
 	--load_train_model_name=model.pth-ae-400000-128-multi-6-english
