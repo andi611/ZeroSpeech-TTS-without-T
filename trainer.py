@@ -203,7 +203,7 @@ class Trainer(object):
 			elif self.g_mode == 'targeted':
 				x_dec += self.Generator(enc, c - self.testing_shift_c)
 			elif self.g_mode == 'targeted_residual':
-				x_dec = (x_dec * 1.0) + (0.7 * x_dec * self.Generator(enc, c - self.testing_shift_c))
+				x_dec = (x_dec * 1.0) + (1.0 * x_dec * self.Generator(enc, c - self.testing_shift_c))
 			elif self.g_mode == 'enhanced' or self.g_mode == 'spectrogram':
 				x_dec += self.Generator(x_dec, c - self.testing_shift_c)
 			elif self.g_mode == 'tacotron':
