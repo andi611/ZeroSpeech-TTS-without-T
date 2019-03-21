@@ -23,7 +23,7 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	tar xvfz english.tgz -C data
 	rm -f english.tgz
 	```
-	The Surprise dataset:
+	- The Surprise dataset:
 	```
 	wget https://download.zerospeech.com/2019/surprise.zip
 	# Go to https://download.zerospeech.com  and accept the licence agreement 
