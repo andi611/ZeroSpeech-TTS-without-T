@@ -57,19 +57,19 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 
 ### Training
 
-1. **Train stage 1 ASR-TTS model:**
+1. **Train ASR-TTS autoencoder model for discrete linguistic units discovery:**
 	```
 	python3 main.py --train_ae
 	```
 	Tunable hyperparameters can be found in [hps/zerospeech.json](hps/zerospeech.json). 
 	You can adjust these parameters and setting by editing the file, the default hyperparameters are recommended for this project.
 
-2. **Train stage 2 TTS patcher:**
+2. **Train TTS patcher for voice conversion performance boosting:**
 	```
 	python3 main.py --train_p --load_model --load_train_model_name=model.pth-ae-400000
 	```
 
-3. **Train stage 2 TTS patcher with target guided adversarial training:**
+3. **Train TTS patcher with target guided adversarial training:**
 	```
 	python3 main.py --train_tgat --load_model --load_train_model_name=model.pth-ae-400000
 	```
