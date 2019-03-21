@@ -26,12 +26,11 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	The Surprise dataset:
 	```
 	wget https://download.zerospeech.com/2019/surprise.zip
+	# Go to https://download.zerospeech.com  and accept the licence agreement 
+	# to get the password protecting the archive
 	unzip surprise.zip -d data
-	>> enter the password when prompted for: 9kneopShevtat]
 	rm -f surprise.zip
 	```
-	
-	Dataset Backup Link: [Download](https://drive.google.com/drive/folders/19MwNuGO8WbhR4ujmjf9B5k8bHocctSS_?usp=sharing)
 
 2. **After unpacking the dataset into `~/ZeroSpeech-TTS-without-T/data`, data tree should look like this:**
 	```
