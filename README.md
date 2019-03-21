@@ -17,7 +17,7 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 ### Prepare data
 
 1. **Download the ZeroSpeech dataset.**
-	The English dataset:
+	- The English dataset:
 	```
 	wget https://download.zerospeech.com/2019/english.tgz
 	tar xvfz english.tgz -C data
