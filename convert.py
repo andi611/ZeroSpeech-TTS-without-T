@@ -396,20 +396,22 @@ def target_classify(trainer, seg_len, synthesis_list, result_dir, flag='test'):
 			elif idx == 0:
 				raise RuntimeError('Please check if input is too short!')
 		logits = np.concatenate(logits, axis=0)
-		logits = np.sum(logits, axis = 0)
-		
-		if logits[0] >= logits[1]:
-			clf_speaker = 'V001'
-		elif logits[1] > logits[0]:
-			clf_speaker = 'V002'
-		
-		if clf_speaker == tar_speaker:
-			acc.append(1)
-			#print('[info]: {} is classified to {}'.format(wav_path, clf_speaker), end = '')
-		else:
-			acc.append(0)
-			#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
-	print('Classification Acc: {:.3f}'.format(np.sum(acc)/len(acc)))
+		#logits = np.sum(logits, axis = 0)
+		for logit in logits:
+			am = logit.argmax()
+			if am == 0:
+				clf_speaker = 'V001'
+			elif am ==1:
+				clf_speaker = 'V002'
+			else:
+				clf_speaker = 'None'
+			if clf_speaker == tar_speaker:
+				acc.append(1)
+				#print('[info]: {} is classified to {}'.format(wav_path, clf_speaker))
+			else:
+				acc.append(0)
+				#print('[Error]: {} is classified to {}'.format(wav_path, clf_speaker))
+	print('Classification Acc: {:.3f}'.format(np.sum(acc)/float(len(acc))))
 
 
 def encode_for_tacotron(target, trainer, seg_len, multi2idx_path, wav_path, result_path):

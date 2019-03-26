@@ -174,7 +174,7 @@ class PatchDiscriminator(nn.Module):
 
 
 class TargetClassifier(nn.Module):
-	def __init__(self, n_class=2, ns=0.2, dp=0.1, seg_len=128):
+	def __init__(self, n_class=2, ns=0.2, dp=0.8, seg_len=128):
 		super(TargetClassifier, self).__init__()
 		self.ns = ns
 		self.seg_len = seg_len

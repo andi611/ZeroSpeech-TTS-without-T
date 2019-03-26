@@ -92,7 +92,7 @@ class Trainer(object):
 		
 		
 		#---target classifier---#
-		self.TargetClassifier = cc(nn.DataParallel(TargetClassifier(ns=ns, n_class=2, seg_len=seg_len)))
+		self.TargetClassifier = cc(nn.DataParallel(TargetClassifier(ns=ns, n_class=3, seg_len=seg_len)))
 		
 		#---target classifier opts---#
 		self.tclf_opt = optim.Adam(self.TargetClassifier.parameters(), lr=self.hps.lr, betas=betas)
@@ -613,11 +613,12 @@ class Trainer(object):
 		elif mode == 't_classify':
 			for iteration in range(hps.tclf_iters):
 			#======train target classifier======#					
-				data_t = next(self.target_loader)
-				c, x_t = self.permute_data(data_t)
-				
+				data = next(self.data_loader)
+				c, x = self.permute_data(data)
+				c[c < 100] = 102
+
 				# classification
-				logits = self.tclf_step(x_t)
+				logits = self.tclf_step(x)
 				
 				# classification loss 
 				loss = self.cal_loss(logits, c-self.shift_c)
@@ -638,7 +639,7 @@ class Trainer(object):
 				if iteration % 100 == 0:
 					for tag, value in info.items():
 						self.logger.scalar_summary(tag, value, iteration + 1)
-				if (iteration + 1) % 1000 == 0:
+				if (iteration + 1) % 100 == 0:
 					self.save_model(model_path, 'tclf', iteration + 1)
 			print()
 

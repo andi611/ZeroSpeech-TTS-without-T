@@ -163,7 +163,6 @@ def main():
 			trainer.reset_keep()
 			
 		if args.train or args.train_c:	
-			trainer.add_duo_loader(source_loader, target_loader)
 			trainer.train(model_path, args.flag, mode='t_classify') 	# Target speaker classifier training
 			trainer.reset_keep()
 
