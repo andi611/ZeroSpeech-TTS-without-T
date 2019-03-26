@@ -44,6 +44,7 @@ def get_config():
 # PLOT TRADE OFF #
 ##################
 def plot_tradeoff(wer, br, name):
+	plt.figure(figsize=(9, 5))
 	plt.xlabel('Bit Rate')
 	plt.ylabel('WER')
 	plt.gca().invert_xaxis()
