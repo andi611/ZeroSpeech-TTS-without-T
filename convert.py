@@ -83,13 +83,13 @@ def encode_x(x, trainer):
 	return enc
 
 
-def get_trainer(hps_path, model_path, g_mode, enc_mode):
+def get_trainer(hps_path, model_path, g_mode, enc_mode, clf_path):
 	HPS = Hps(hps_path)
 	hps = HPS.get_tuple()
 	global MIN_LEN
 	MIN_LEN = MIN_LEN if hps.enc_mode != 'gumbel_t' else hps.seg_len
 	trainer = Trainer(hps, None, g_mode, enc_mode)
-	trainer.load_model(model_path, load_model_list=hps.load_model_list)
+	trainer.load_model(model_path, load_model_list=hps.load_model_list, clf_path = clf_path)
 	return trainer
 
 

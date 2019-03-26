@@ -125,7 +125,7 @@ class Trainer(object):
 			self.model_kept.pop(0)
 
 
-	def load_model(self, model_path, load_model_list, verbose=True):
+	def load_model(self, model_path, load_model_list, verbose=True, clf_path = None):
 		if verbose: print('[Trainer] - load model from {}'.format(model_path))
 		load_model_list = load_model_list.split(', ')
 		all_model = torch.load(model_path)
@@ -157,8 +157,13 @@ class Trainer(object):
 			except: print('[patch_discriminator - X], ', end = '')
 		if 'target_classifier' in load_model_list:
 			try:
-				self.TargetClassifier.load_state_dict(all_model['target_classifier'])
-				if verbose: print('[target_classifier], ', end = '')
+				if clf_path != None:
+					clf_model = torch.load(clf_path)
+					self.TargetClassifier.load_state_dict(clf_model['target_classifier'])
+					if verbose: print('[target_classifier_another], ', end = '')
+				else:
+					self.TargetClassifier.load_state_dict(all_model['target_classifier'])
+					if verbose: print('[target_classifier], ', end = '')
 			except: print('[target_classifier - X], ', end = '')
 		if verbose: print('Loaded!')
 

@@ -76,6 +76,7 @@ def argument_runner():
 	model_path.add_argument('--load_train_model_name', type=str, default='model.pth-ae-424000', help='the model to restore for training, all the --train_* commands will load this model')
 	model_path.add_argument('--load_test_model_name', type=str, default='model.pth-s2-150000', help='the model to restore for testing, all the --test_* commands will load this model')
 	model_path.add_argument('--ckpt_pth', type=str, default=None, help='the direct path to a model ckpt to restore for testing, all the --test_* commands will load this model')
+	model_path.add_argument('--load_tclf_model_name', type=str, default=None, help='the model to restore for classifier')
 	args = parser.parse_args()
 	
 	#---reparse if switching dataset---#
@@ -179,7 +180,7 @@ def main():
 			model_path = args.ckpt_pth
 		else:
 			model_path = os.path.join(args.ckpt_dir, args.load_test_model_name)
-		trainer = get_trainer(args.hps_path, model_path, args.g_mode, args.enc_mode)
+		trainer = get_trainer(args.hps_path, model_path, args.g_mode, args.enc_mode, args.load_tclf_model_name)
 
 		if args.test or args.test_asr:
 			result_dir = os.path.join(args.result_dir, args.sub_result_dir)
@@ -194,7 +195,9 @@ def main():
 			os.makedirs(result_dir, exist_ok=True)
 			test_encode(trainer, hps.seg_len, args.test_path, args.dataset_path, result_dir, flag='test')
 		if args.test_classify:
-			target_classify(trainer, hps.seg_len, args.synthesis_list, args.result_dir, flag='test')
+			result_dir = os.path.join(args.result_dir, args.sub_result_dir)
+			os.makedirs(result_dir, exist_ok=True)
+			target_classify(trainer, hps.seg_len, args.synthesis_list, result_dir, flag='test')
 		if args.encode:
 			if args.encode_t == None:
 				raise RuntimeError('Please specified encode target! (--encode_t=V001 or --encode_t=V002)')
