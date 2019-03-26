@@ -15,6 +15,13 @@ import csv
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 17})
+
+###########
+# LAMBDAS #
+###########
+to_str = lambda x: [str(i) for i in x]
+norm = lambda x : np.interp(x, (np.amin(x), np.amax(x)), (0, +1))
 
 
 ##################
@@ -41,7 +48,7 @@ def plot_tradeoff(wer, br, name):
 	plt.ylabel('WER')
 	plt.gca().invert_xaxis()
 	# plt.xscale('log')
-	plt.plot(br, wer, linestyle=':', marker='o', color='red')
+	plt.plot(to_str(br), wer, linestyle=':', marker='o', color='red')
 	plt.savefig(name)
 	plt.close()
 
@@ -50,12 +57,13 @@ def plot_tradeoff(wer, br, name):
 # PLOT TRADE OFF #
 ##################
 def plot_encoding(wer, br, dim, name):
+	plt.figure(figsize=(9, 5))
 	plt.ylabel('Linear Interpolated WER and Bit Rate')
 	plt.xlabel('Embedding Size')
-	norm = lambda x : np.interp(x, (np.amin(x), np.amax(x)), (0, +1))
-	plt.plot(dim, norm(wer), linestyle=':', marker='o', color='red', label='wer')
-	plt.plot(dim, norm(br), linestyle=':', marker='o', color='blue', label='br')
+	plt.plot(to_str(dim), norm(wer), linestyle=':', marker='o', color='m', label='wer')
+	plt.plot(to_str(dim), norm(br), linestyle=':', marker='o', color='c', label='br')
 	plt.legend(loc='center right')
+	plt.tight_layout()
 	plt.savefig(name)
 	plt.close()
 
