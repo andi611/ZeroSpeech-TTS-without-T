@@ -124,6 +124,7 @@ A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.
 	--load_test_model_name=model.pth-s2-30000-128-multi-6-tg-r-english
 	--ckpt_pth=ckpt/model.pth-s2-30000-128-multi-6-tg-r-english
 	```
+4. Note that [hps/zerospeech.json](hps/zerospeech.json) needs to be set accordingly to the model you are loading. If a `128-multi-1024` model is being loaded, `seg_len` and `enc_size` should be set to 128 and 1024, respectively.
 
 
 ## Note
