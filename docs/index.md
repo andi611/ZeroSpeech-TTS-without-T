@@ -1,20 +1,24 @@
 ---
 layout: default
 ---
+#### 感謝你參與這次實驗！
 #### 這部份將會有10組各5個音檔
-#### 每一組的內容都有其對應的文字
-#### 請使用"耳機"並仔細聽完
-#### 並根據:
-#### Q1: "是否自然流暢" 
-#### Q2: "是否與「對應」文字相符且「沒有多餘」的話語" 評分
-#### 評分標準如下
+#### 每一組的內容都是同一組source speaker S轉換到target speaker T的結果
+#### 請使用"耳機"聽完後並根據下列兩個標準評分:
+#### Q1: "Naturalness - 是否自然流暢?" 
+#### Q2: "Similarity - 是否與「對應」的目標語者(Target speaker)聲音相似？"
+#### 評分標準如下:
 * 5: Excellent (非常好)
 * 4: Good (好)
 * 3: Fair (尚可）
 * 2: Poor (不好)
 * 1: Bad （非常不好）
 
-
+#### 請使用下面Target Speaker的聲音當評分similarity時的參考:
+#### **Target Speaker V001:**
+<audio src="MOS_15min/separate/f05-read-0844_separate.wav" controls preload></audio>
+#### **Target Speaker V002:**
+<audio src="MOS_15min/separate/f05-read-0844_separate.wav" controls preload></audio>
 
 - - -
 
