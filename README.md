@@ -1,5 +1,6 @@
 # ZeroSpeech 2019: TTS without T
-A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/).
+* A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/).
+* We present samples of our generated results on a github page - [Demo](https://andi611.github.io/ZeroSpeech-TTS-without-T/)
 
 ## Quick Start
 
