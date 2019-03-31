@@ -9,7 +9,7 @@ layout: default
 #### **Q2: "Similarity - 是否與「對應」的目標語者(Target speaker)聲音相似？"**
 #### 評分標準如下:
 * 5: Excellent (非常好) (非常像)
-* 4: Good (好) (有點像)
+* 4: Good (好) (蠻像的)
 * 3: Fair (尚可）(有點像)
 * 2: Poor (不好) (不像)
 * 1: Bad （非常不好）(非常不像)
