@@ -2,11 +2,14 @@
 layout: default
 ---
 #### 感謝你參與這次實驗！
-#### 這部份將會有10組各5個音檔
-#### 每一組的內容都是同一組「source speaker S」轉換到「target speaker T」的結果
-#### 請使用"耳機"聽完後並根據下列兩個標準評分:
+#### 這部份將會有10組，每組各5個聲音檔案
+#### 其中這5個聲音檔案講的都是同一句話，
+#### 是同一個「source speaker S」轉換到「target speaker T」的結果。
+#### 在每一組的開頭，會有該組「target speaker T」的reference音檔，以供受試者參考。
+#### 請使用"耳機"聽完後並根據下列兩個標準評分：
 #### **Q1: "Naturalness - 是否自然流暢?"**
 #### **Q2: "Similarity - 是否與「對應」的目標語者(Target speaker)聲音相似？"**
+#### 在填寫Q2時，只需注意語調風格(style)是否與reference相似，不需理會內容(content)。
 #### 評分標準如下:
 * 5: Excellent (非常好) (非常像)
 * 4: Good (好) (蠻像的)
