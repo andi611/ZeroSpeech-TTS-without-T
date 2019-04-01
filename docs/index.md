@@ -1,25 +1,26 @@
 ---
 layout: default
 ---
-#### 感謝你參與這次實驗！
-#### 這部份將會有10組，每組各5個聲音檔案
-#### 其中這5個聲音檔案講的都是同一句話，
-#### 是同一個「source speaker S」轉換到「target speaker T」的結果。
-#### 在每一組的開頭，會有該組「target speaker T」的reference音檔，以供受試者參考。
-#### 請使用"耳機"聽完後並根據下列兩個標準評分：
-#### **Q1: "Naturalness - 是否自然流暢?"**
-#### **Q2: "Similarity - 是否與「對應」的目標語者(Target speaker)聲音相似？"**
+#### 在每一組的開頭，
+#### 我們會放置該實驗組的「目標語者target speaker T」的聲音音檔，以供受試者比較轉換結果是否相似。
+#### 請使用「耳機」聽完後並根據下列兩個標準評分：
+- - -
+#### Q1: “Naturalness - 是否自然流暢?”
+#### Q2: “Similarity - 是否與「對應」的目標語者(Target speaker)聲音相似？”
 #### 評分標準如下:
 * 5: Excellent (非常好) (非常像)
 * 4: Good (好) (蠻像的)
-* 3: Fair (尚可）(有點像)
+* 3: Fair (尚可) (有點像)
 * 2: Poor (不好) (不像)
-* 1: Bad （非常不好）(非常不像)
-
-#### 在評分Q2時，只需注意語調風格(style)是否與reference音檔相似，不需理會語句內容(content)。
+* 1: Bad (非常不好) (非常不像)
 
 - - -
-#### **Target Speaker Reference V002:**
+#### 評分時請特別注意：
+#### 在評分Q1時，只需注意聲音整體是否自然流暢，而不需理會轉換後的語調風格(style)是否相似。
+#### 在評分Q2時，只需注意語調風格(style)是否與目標語者的參考音檔相似，而不需理會語句內容是否正確(content)。
+
+- - -
+#### **目標語者: V002 女聲**
 <audio src="exp/samples/V002_3596513978.wav" controls preload></audio>
 - - -
 #### No. 1-1: **Target: V002**
@@ -61,7 +62,7 @@ layout: default
 #### No. 3-5: **Target: V001**
 <audio src="exp/s2-128-m-1024/3.wav" controls preload></audio>
 - - -
-#### **Target Speaker Reference V002:**
+#### **目標語者: V002 女聲**
 <audio src="exp/samples/V002_3596513978.wav" controls preload></audio>
 - - -
 #### No. 4-1: **Target: V002**
@@ -89,7 +90,7 @@ layout: default
 #### No. 5-5: **Target: V001**
 <audio src="exp/s2-128-m-1024/5.wav" controls preload></audio>
 - - -
-#### **Target Speaker Reference V002:**
+#### **目標語者: V002 女聲**
 <audio src="exp/samples/V002_3596513978.wav" controls preload></audio>
 - - -
 #### No. 6-1: **Target: V002**
@@ -117,7 +118,7 @@ layout: default
 #### No. 7-5: **Target: V001**
 <audio src="exp/s2-128-m-1024/7.wav" controls preload></audio>
 - - -
-#### **Target Speaker Reference V002:**
+#### **目標語者: V002 女聲**
 <audio src="exp/samples/V002_3596513978.wav" controls preload></audio>
 - - -
 #### No. 8-1: **Target: V002**
@@ -131,7 +132,7 @@ layout: default
 #### No. 8-5: **Target: V002**
 <audio src="exp/s2-128-m-1024/8.wav" controls preload></audio>
 - - -
-#### **Target Speaker Reference V002:**
+#### **目標語者: V002 女聲**
 <audio src="exp/samples/V002_3596513978.wav" controls preload></audio>
 - - -
 #### No. 9-1: **Target: V002**
