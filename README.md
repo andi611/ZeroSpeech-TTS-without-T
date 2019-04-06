@@ -1,6 +1,8 @@
-# ZeroSpeech 2019: TTS without T
-* A Pytorch implementation for the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/).
-* We present samples of our generated results on a github page - [Demo](https://andi611.github.io/ZeroSpeech-TTS-without-T/)
+# ZeroSpeech 2019: TTS without T - Pytorch
+* This is the source code for ["Unsupervised End-to-End Learning of Discrete Linguistic Units for Voice Conversion"](paper/2048_file_Paper.pdf), which is submitted to Interspeech 2019.
+* We also use this implementation to compete in the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/).
+
+<img src="https://github.com/andi611/Tacotron-Pytorch/blob/master/result/checkpoint_step500000_all.png">
 
 ## Quick Start
 
@@ -114,16 +116,16 @@
 	```
 
 ### Trained-Models
-1. We provide trained models as ckpt files, Donwload Link: [ZeroSpeech_Ckpts](https://drive.google.com/drive/folders/1Ba1XRWdO3HcHNkWgw2KknPmYnM_u1S-Q?usp=sharing)
+1. We provide trained models as ckpt files, Donwload Link: TODO
 2. Reload model for training:
 	```
-	--load_train_model_name=model.pth-ae-400000-128-multi-6-english
+	--load_train_model_name=model.pth-ae-400000-128-multi-1024-english
 	```
 	(`--ckpt_dir=./ckpt_english` or `--ckpt_dir=./ckpt_surprise` by default).
 3. 2 ways to load model for testing:
 	```
-	--load_test_model_name=model.pth-s2-30000-128-multi-6-tg-r-english
-	--ckpt_pth=ckpt/model.pth-s2-30000-128-multi-6-tg-r-english
+	--load_test_model_name=model.pth-ae-400000-128-multi-1024-english (by name)
+	--ckpt_pth=ckpt/model.pth-ae-400000-128-multi-1024-english (direct path)
 	```
 4. Note that [hps/zerospeech.json](hps/zerospeech.json) needs to be set accordingly to the model you are loading. If a `128-multi-1024` model is being loaded, `seg_len` and `enc_size` should be set to 128 and 1024, respectively.
 
