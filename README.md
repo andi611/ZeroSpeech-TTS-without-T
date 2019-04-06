@@ -2,7 +2,8 @@
 * This is the source code for ["Unsupervised End-to-End Learning of Discrete Linguistic Units for Voice Conversion"](paper/2048_file_Paper.pdf), which is submitted to Interspeech 2019.
 * We also use this implementation to compete in the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/).
 
-<img src="https://github.com/andi611/Tacotron-Pytorch/blob/master/result/checkpoint_step500000_all.png">
+<img src="https://github.com/andi611/ZeroSpeech-TTS-without-T/blob/master/result/image/stage1.png">
+<img src="https://github.com/andi611/ZeroSpeech-TTS-without-T/blob/master/result/image/stage2.png">
 
 ## Quick Start
 
