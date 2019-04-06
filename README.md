@@ -128,9 +128,10 @@
 	--load_test_model_name=model.pth-ae-400000-128-multi-1024-english (by name)
 	--ckpt_pth=ckpt/model.pth-ae-400000-128-multi-1024-english (direct path)
 	```
-4. Note that [hps/zerospeech.json](hps/zerospeech.json) needs to be set accordingly to the model you are loading. If a `128-multi-1024` model is being loaded, `seg_len` and `enc_size` should be set to 128 and 1024, respectively.
+4. Care that [hps/zerospeech.json](hps/zerospeech.json) needs to be set accordingly to the model you are loading. If a `128-multi-1024` model is being loaded, `seg_len` and `enc_size` should be set to 128 and 1024, respectively.
 
 
-## Note
-This code includes all the settings and methods we've tested for this challenge, some of which did not suceess but we did not remove them from our code. However, the previous instructions and default settings are for the method we proposed. By running them one can easily reproduce our results.
+## Notes
+* This code includes all the settings and methods we've tested for this challenge, some of which did not suceess but we did not remove them from our code. However, the previous instructions and default settings are for the method we proposed. By running them one can easily reproduce our results.
+* TODO: upload pre-trained models
 
