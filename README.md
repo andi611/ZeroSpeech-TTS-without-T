@@ -1,6 +1,6 @@
 # ZeroSpeech 2019: TTS without T - Pytorch
-* This is the source code for ["Unsupervised End-to-End Learning of Discrete Linguistic Units for Voice Conversion"](paper/2048_file_Paper.pdf), which is submitted to Interspeech 2019.
-* We also use this implementation to compete in the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/).
+* This is the original source code for the paper ["Unsupervised End-to-End Learning of Discrete Linguistic Units for Voice Conversion"](https://arxiv.org/abs/1905.11563), which is also submitted to Interspeech 2019.
+* Furthurmore, we used this implementation to compete in the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/).
 
 <img src="https://github.com/andi611/ZeroSpeech-TTS-without-T/blob/master/result/image/stage1.png">
 <img src="https://github.com/andi611/ZeroSpeech-TTS-without-T/blob/master/result/image/stage2.png">
