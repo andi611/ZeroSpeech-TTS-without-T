@@ -128,7 +128,7 @@
 	--load_test_model_name=model.pth-ae-400000-128-multi-1024-english (by name)
 	--ckpt_pth=ckpt/model.pth-ae-400000-128-multi-1024-english (direct path)
 	```
-4. Care that [hps/zerospeech.json](hps/zerospeech.json) needs to be set accordingly to the model you are loading. If a `128-multi-1024` model is being loaded, `seg_len` and `enc_size` should be set to 128 and 1024, respectively.
+4. Care that [hps/zerospeech.json](hps/zerospeech.json) needs to be set accordingly to the model you are loading. If a `128-multi-1024` model is being loaded, `seg_len` and `enc_size` should be set to 128 and 1024, respectively. If a `ae` model is being loaded, the argument `--enc_only` must be used when running `main.py` (See 4. in the Testing section).
 
 
 ## Notes
