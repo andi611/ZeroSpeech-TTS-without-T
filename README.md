@@ -110,7 +110,7 @@
 	```
 
 ### Switching between datasets
-1. Simply use add **`--dataset=surprise`** to switch to the default alternative set, all paths are handled automatically if the data tree structure is placed as suggested.
+1. Simply use **`--dataset=surprise`** to switch to the default alternative set, all paths are handled automatically if the data tree structure is placed as suggested.
 	For example:
 	```
 	python3 main.py --train_ae --dataset=surprise
