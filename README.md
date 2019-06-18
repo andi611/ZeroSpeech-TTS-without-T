@@ -54,7 +54,7 @@
 
 3. **Preprocess the dataset and sample model-ready index files:**
 	```
-	python3 main.py --preprocess
+	python3 main.py --preprocess —-remake
 	```
 
 ## Usage
