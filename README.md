@@ -1,6 +1,7 @@
 # ZeroSpeech 2019: TTS without T - Pytorch
 * This is the original source code for the paper ["Unsupervised End-to-End Learning of Discrete Linguistic Units for Voice Conversion"](https://arxiv.org/abs/1905.11563), which is accepted by [Interspeech 2019](https://www.interspeech2019.org/).
 * Furthurmore, we used this implementation to compete in the [ZeroSpeech 2019 challenge](https://zerospeech.com/2019/). On the [Surprise dataset leaderboard](https://zerospeech.com/2019/results.html), the proposed method is **2<sup>nd</sup> place in terms of low bitrate**, while achieving **higher Mean Opinion Score (MOS) and lower CER than the 1<sup>st</sup> place team**.
+* Feel free to use or modify them, any bug report or improvement suggestion will be appreciated. If you have any questions, please contact r07942089@ntu.edu.tw. If you find this project helpful for your research, please do consider to cite [this paper](#Citation), thanks!
 
 <img src="https://github.com/andi611/ZeroSpeech-TTS-without-T/blob/master/result/image/stage1.png">
 <img src="https://github.com/andi611/ZeroSpeech-TTS-without-T/blob/master/result/image/stage2.png">
@@ -135,3 +136,16 @@
 * This code includes all the settings and methods we've tested for this challenge, some of which did not suceess but we did not remove them from our code. However, the previous instructions and default settings are for the method we proposed. By running them one can easily reproduce our results.
 * TODO: upload pre-trained models
 
+## Citation
+```
+@article{Liu_2019,
+   title={Unsupervised End-to-End Learning of Discrete Linguistic Units for Voice Conversion},
+   url={http://dx.doi.org/10.21437/interspeech.2019-2048},
+   DOI={10.21437/interspeech.2019-2048},
+   journal={Interspeech 2019},
+   publisher={ISCA},
+   author={Liu, Andy T. and Hsu, Po-chun and Lee, Hung-Yi},
+   year={2019},
+   month={Sep}
+}
+```
