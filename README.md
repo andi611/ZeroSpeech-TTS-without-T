@@ -118,7 +118,7 @@
 	```
 
 ### Trained-Models
-1. We provide trained models as ckpt files, Donwload Link: [bit.ly/ZeroSpeech2019-Liu](bit.ly/ZeroSpeech2019-Liu)
+1. We provide trained models as ckpt files, Donwload Link: [bit.ly/ZeroSpeech2019-Liu](https://bit.ly/ZeroSpeech2019-Liu)
 2. Reload model for training:
 	```
 	--load_train_model_name=model.pth-ae-400000-128-multi-1024-english
